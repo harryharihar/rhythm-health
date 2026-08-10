@@ -10,8 +10,17 @@ import { useHealth } from '../store/healthStore';
 import { exportAllData } from '../storage/storage';
 import { radius, spacing } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
+import { GENDER_OPTIONS } from './OnboardingScreen';
 
-const NOTIFICATION_TIME_OPTIONS = ['7:00 AM', '8:00 AM', '6:00 PM', '8:00 PM', '9:00 PM', '10:00 PM'];
+const NOTIFICATION_TIME_OPTIONS = [
+  { label: '7:00 AM', icon: 'sunny-outline' },
+  { label: '8:00 AM', icon: 'sunny-outline' },
+  { label: '6:00 PM', icon: 'partly-sunny-outline' },
+  { label: '8:00 PM', icon: 'moon-outline' },
+  { label: '9:00 PM', icon: 'moon-outline' },
+  { label: '10:00 PM', icon: 'moon-outline' },
+];
+const genderLabel = (value) => GENDER_OPTIONS.find((g) => g.value === value)?.label;
 const APP_VERSION = Constants.expoConfig?.version || '1.0.0';
 
 function getDbSizeMb() {
@@ -30,7 +39,7 @@ export default function ProfileScreen() {
   const dbSizeMb = useMemo(getDbSizeMb, []);
 
   const [editOpen, setEditOpen] = useState(false);
-  const [editFields, setEditFields] = useState({ name: '', age: '', heightCm: '', weightKg: '' });
+  const [editFields, setEditFields] = useState({ name: '', age: '', gender: 'unspecified', heightCm: '', weightKg: '' });
   const [goalSheet, setGoalSheet] = useState(null); // 'steps' | 'water' | 'sleep' | null
   const [goalValue, setGoalValue] = useState('');
   const [timeSheetOpen, setTimeSheetOpen] = useState(false);
@@ -41,6 +50,7 @@ export default function ProfileScreen() {
     setEditFields({
       name: profile.name || '',
       age: profile.age ? String(profile.age) : '',
+      gender: profile.gender || 'unspecified',
       heightCm: profile.heightCm ? String(profile.heightCm) : '',
       weightKg: profile.weightKg ? String(profile.weightKg) : '',
     });
@@ -51,6 +61,7 @@ export default function ProfileScreen() {
     updateProfile({
       name: editFields.name.trim() || profile.name,
       age: editFields.age ? Number(editFields.age) : null,
+      gender: editFields.gender,
       heightCm: editFields.heightCm ? Number(editFields.heightCm) : profile.heightCm,
       weightKg: editFields.weightKg ? Number(editFields.weightKg) : profile.weightKg,
     });
@@ -77,7 +88,7 @@ export default function ProfileScreen() {
     const data = await exportAllData();
     Alert.alert(
       'Export preview',
-      `This device has ${data.water.length} water logs, ${data.sleep.length} sleep logs, ${data.steps.length} step entries, and ${data.weight.length} weight logs.\n\nFile export/sharing isn't wired up yet — this previews what's stored.`
+      `This device has ${data.water.length} water logs, ${data.sleep.length} sleep logs, ${data.steps.length} step entries, ${data.weight.length} weight logs, ${data.workouts.length} workouts, and ${data.meals.length} meals.\n\nFile export/sharing isn't wired up yet — this previews what's stored.`
     );
   };
 
@@ -103,6 +114,13 @@ export default function ProfileScreen() {
             <Ionicons name="person-outline" size={34} color={colors.inkSoft} />
           </View>
           <Text style={styles.name}>{profile.name}</Text>
+          {(profile.gender && profile.gender !== 'unspecified') || profile.age ? (
+            <Text style={styles.metaLine}>
+              {[genderLabel(profile.gender) && profile.gender !== 'unspecified' ? genderLabel(profile.gender) : null, profile.age ? `${profile.age} yrs` : null]
+                .filter(Boolean)
+                .join(' · ')}
+            </Text>
+          ) : null}
           <TouchableOpacity style={styles.editBtn} onPress={openEdit}>
             <Text style={styles.editBtnText}>Edit Profile</Text>
           </TouchableOpacity>
@@ -184,74 +202,93 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={16} color={colors.inkSoft} />
           </TouchableOpacity>
         </Card>
+      </ScrollView>
 
-        <QuickAddSheet visible={editOpen} title="Edit Profile" onClose={() => setEditOpen(false)}>
-          <LabeledField styles={styles} colors={colors} label="Name">
-            <TextInput
-              style={styles.input}
-              placeholder="Name"
-              placeholderTextColor={colors.inkFaint}
-              value={editFields.name}
-              onChangeText={(v) => setEditFields((f) => ({ ...f, name: v }))}
-            />
-          </LabeledField>
-          <LabeledField styles={styles} colors={colors} label="Age">
-            <TextInput
-              style={styles.input}
-              placeholder="Age"
-              keyboardType="number-pad"
-              placeholderTextColor={colors.inkFaint}
-              value={editFields.age}
-              onChangeText={(v) => setEditFields((f) => ({ ...f, age: v }))}
-            />
-          </LabeledField>
-          <LabeledField styles={styles} colors={colors} label="Height (cm)">
-            <TextInput
-              style={styles.input}
-              placeholder="Height (cm)"
-              keyboardType="decimal-pad"
-              placeholderTextColor={colors.inkFaint}
-              value={editFields.heightCm}
-              onChangeText={(v) => setEditFields((f) => ({ ...f, heightCm: v }))}
-            />
-          </LabeledField>
-          <LabeledField styles={styles} colors={colors} label="Weight (kg)">
-            <TextInput
-              style={styles.input}
-              placeholder="Weight (kg)"
-              keyboardType="decimal-pad"
-              placeholderTextColor={colors.inkFaint}
-              value={editFields.weightKg}
-              onChangeText={(v) => setEditFields((f) => ({ ...f, weightKg: v }))}
-            />
-          </LabeledField>
-          <TouchableOpacity style={styles.submitBtn} onPress={saveEdit}>
-            <Text style={styles.submitLabel}>Save</Text>
-          </TouchableOpacity>
-        </QuickAddSheet>
-
-        <QuickAddSheet visible={!!goalSheet} title="Update goal" onClose={() => setGoalSheet(null)}>
+      <QuickAddSheet visible={editOpen} title="Edit Profile" onClose={() => setEditOpen(false)}>
+        <LabeledField styles={styles} colors={colors} label="Name">
           <TextInput
             style={styles.input}
-            keyboardType="decimal-pad"
-            placeholder="New goal value"
+            placeholder="Name"
             placeholderTextColor={colors.inkFaint}
-            value={goalValue}
-            onChangeText={setGoalValue}
-            autoFocus
+            value={editFields.name}
+            onChangeText={(v) => setEditFields((f) => ({ ...f, name: v }))}
           />
-          <TouchableOpacity style={styles.submitBtn} onPress={saveGoal}>
-            <Text style={styles.submitLabel}>Save</Text>
-          </TouchableOpacity>
-        </QuickAddSheet>
+        </LabeledField>
+        <LabeledField styles={styles} colors={colors} label="Age">
+          <TextInput
+            style={styles.input}
+            placeholder="Age"
+            keyboardType="number-pad"
+            placeholderTextColor={colors.inkFaint}
+            value={editFields.age}
+            onChangeText={(v) => setEditFields((f) => ({ ...f, age: v }))}
+          />
+        </LabeledField>
+        <LabeledField styles={styles} colors={colors} label="Gender">
+          <View style={styles.genderRow}>
+            {GENDER_OPTIONS.map((opt) => (
+              <TouchableOpacity
+                key={opt.value}
+                style={[styles.genderChip, editFields.gender === opt.value && styles.genderChipActive]}
+                onPress={() => setEditFields((f) => ({ ...f, gender: opt.value }))}
+              >
+                <Text style={[styles.genderChipText, editFields.gender === opt.value && styles.genderChipTextActive]}>{opt.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </LabeledField>
+        <LabeledField styles={styles} colors={colors} label="Height (cm)">
+          <TextInput
+            style={styles.input}
+            placeholder="Height (cm)"
+            keyboardType="decimal-pad"
+            placeholderTextColor={colors.inkFaint}
+            value={editFields.heightCm}
+            onChangeText={(v) => setEditFields((f) => ({ ...f, heightCm: v }))}
+          />
+        </LabeledField>
+        <LabeledField styles={styles} colors={colors} label="Weight (kg)">
+          <TextInput
+            style={styles.input}
+            placeholder="Weight (kg)"
+            keyboardType="decimal-pad"
+            placeholderTextColor={colors.inkFaint}
+            value={editFields.weightKg}
+            onChangeText={(v) => setEditFields((f) => ({ ...f, weightKg: v }))}
+          />
+        </LabeledField>
+        <TouchableOpacity style={styles.submitBtn} onPress={saveEdit}>
+          <Text style={styles.submitLabel}>Save</Text>
+        </TouchableOpacity>
+      </QuickAddSheet>
 
-        <QuickAddSheet
-          visible={timeSheetOpen}
-          title="Notification time"
-          options={NOTIFICATION_TIME_OPTIONS.map((t) => ({ label: t, onPress: () => updateSettings({ notificationTime: t }) }))}
-          onClose={() => setTimeSheetOpen(false)}
+      <QuickAddSheet visible={!!goalSheet} title="Update goal" onClose={() => setGoalSheet(null)}>
+        <TextInput
+          style={styles.input}
+          keyboardType="decimal-pad"
+          placeholder="New goal value"
+          placeholderTextColor={colors.inkFaint}
+          value={goalValue}
+          onChangeText={setGoalValue}
+          autoFocus
         />
-      </ScrollView>
+        <TouchableOpacity style={styles.submitBtn} onPress={saveGoal}>
+          <Text style={styles.submitLabel}>Save</Text>
+        </TouchableOpacity>
+      </QuickAddSheet>
+
+      <QuickAddSheet
+        visible={timeSheetOpen}
+        title="Notification time"
+        accentColor={colors.primary}
+        options={NOTIFICATION_TIME_OPTIONS.map((t) => ({
+          label: t.label,
+          icon: t.icon,
+          active: t.label === settings.notificationTime,
+          onPress: () => updateSettings({ notificationTime: t.label }),
+        }))}
+        onClose={() => setTimeSheetOpen(false)}
+      />
     </View>
   );
 }
@@ -296,7 +333,8 @@ const makeStyles = (colors) =>
       justifyContent: 'center',
       marginBottom: spacing.md,
     },
-    name: { fontSize: 18, fontWeight: '800', color: colors.ink, marginBottom: spacing.md },
+    name: { fontSize: 18, fontWeight: '800', color: colors.ink, marginBottom: 4 },
+    metaLine: { fontSize: 12.5, color: colors.inkSoft, fontWeight: '500', marginBottom: spacing.md },
     editBtn: {
       borderWidth: 1,
       borderColor: colors.borderStrong,
@@ -334,6 +372,18 @@ const makeStyles = (colors) =>
       textTransform: 'uppercase',
       letterSpacing: 0.5,
     },
+    genderRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: spacing.md },
+    genderChip: {
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: 999,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    genderChipActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
+    genderChipText: { fontSize: 13, fontWeight: '600', color: colors.inkSoft },
+    genderChipTextActive: { color: colors.primary },
     input: {
       backgroundColor: colors.bgElevated,
       borderRadius: 14,

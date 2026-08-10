@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import RingGauge from '../components/RingGauge';
@@ -8,17 +8,15 @@ import StatCard from '../components/StatCard';
 import Card from '../components/Card';
 import WeekBars from '../components/WeekBars';
 import { useHealth } from '../store/healthStore';
+import { useHealthKitData } from '../health/useHealthKitData';
 import { spacing } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
 import { formatFriendlyDate, formatHoursMinutes, greeting, sumByDay } from '../utils/dateUtils';
-import { estimateCaloriesFromSteps, estimateDistanceKm } from '../utils/healthCalculations';
+import { estimateCaloriesFromSteps, estimateDistanceKm, groupWorkoutsByType, iconForType } from '../utils/healthCalculations';
 
-// No heart-rate sensor or active-minutes tracking exists yet — these are
-// static placeholder numbers purely for visual layout, not real readings.
-const HEART_RATE_BPM = 72;
-const HEART_RATE_RESTING = 62;
-const HEART_RATE_TREND = [58, 60, 63, 68, 72, 75, 70, 66];
-const ACTIVE_MINUTES = 47;
+const HEART_RATE_INFO = Platform.OS === 'ios'
+  ? "This is your most recent BPM and resting heart rate reading, read directly from Apple Health (HealthKit) — usually recorded by a paired Apple Watch or another connected monitor. Rhythm doesn't measure heart rate itself, it only displays your latest Health app reading. It refreshes each time you open this screen."
+  : 'Heart rate is read from Apple Health (HealthKit), which only exists on iOS — there is no equivalent source wired up for Android yet, so this has no real reading to show here.';
 
 // Typical adult sleep-stage proportions, applied to the real logged total —
 // the total is real data, the stage split is an estimate (no sleep-stage
@@ -37,6 +35,10 @@ export default function HomeScreen() {
   const { profile, todayTotals, steps, weight, addWater } = useHealth();
   const colors = useThemeColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const hk = useHealthKitData();
+
+  const heartRateAvailable = hk.heartRate?.bpm != null;
+  const activeMinutes = hk.exerciseMinutes ?? todayTotals.activeMinutes;
 
   const goals = profile?.goals || { stepsGoal: 10000, waterGoalMl: 2500, sleepGoalHours: 8 };
   const initials = (profile?.name || '?').trim().slice(0, 2).toUpperCase();
@@ -71,11 +73,23 @@ export default function HomeScreen() {
     return Math.round((avg / goals.stepsGoal) * 100);
   }, [weekSteps, goals]);
 
-  const calories = estimateCaloriesFromSteps(todayTotals.stepsCount);
-  const distanceKm = estimateDistanceKm(todayTotals.stepsCount);
+  const stepsCaloriesToday = estimateCaloriesFromSteps(todayTotals.stepsCount);
+  const workoutCaloriesToday = todayTotals.workoutCaloriesKcal || 0;
+  const calories = stepsCaloriesToday + workoutCaloriesToday;
+
+  const stepsDistanceToday = estimateDistanceKm(todayTotals.stepsCount);
+  const workoutDistanceToday = todayTotals.workoutDistanceKm || 0;
+  const distanceKm = Math.round((stepsDistanceToday + workoutDistanceToday) * 10) / 10;
+
+  const workoutsByTypeToday = useMemo(() => groupWorkoutsByType(todayTotals.todayWorkouts), [todayTotals.todayWorkouts]);
+  const caloriesCaption = workoutCaloriesToday > 0 ? `steps + ${workoutsByTypeToday.map((w) => w.type).join(', ')}` : null;
+  const distanceCaption =
+    workoutDistanceToday > 0 ? `steps + ${workoutsByTypeToday.filter((w) => w.distanceKm > 0).map((w) => w.type).join(', ')}` : null;
 
   const sleepHours = todayTotals.sleepHours || 0;
-  const sleepStages = sleepHours > 0
+  const sleepStages = hk.sleepStages
+    ? { deep: hk.sleepStages.deepHours, light: hk.sleepStages.lightHours, rem: hk.sleepStages.remHours, awake: hk.sleepStages.awakeHours }
+    : sleepHours > 0
     ? {
         deep: sleepHours * SLEEP_STAGE_RATIOS.deep,
         light: sleepHours * SLEEP_STAGE_RATIOS.light,
@@ -123,27 +137,59 @@ export default function HomeScreen() {
         </Card>
 
         <View style={styles.grid}>
-          <StatCard icon="footsteps" dotColor={colors.danger} label="Steps" value={todayTotals.stepsCount.toLocaleString()} unit={`/${Math.round(goals.stepsGoal / 1000)}k`} />
-          <StatCard icon="flame" dotColor={colors.steps} label="Calories" value={calories} unit="kcal" />
-          <StatCard icon="location" dotColor={colors.primary} label="Distance" value={distanceKm} unit="km" />
-          <StatCard icon="flash" dotColor={colors.sleep} label="Active" value={ACTIVE_MINUTES} unit="min" />
+          <StatCard icon="footsteps" dotColor={colors.danger} label="Steps" value={todayTotals.stepsCount.toLocaleString()} unit={`/${Math.round(goals.stepsGoal / 1000)}k`} caption="Auto-tracked" />
+          <StatCard icon="flame" dotColor={colors.steps} label="Calories" value={calories} unit="kcal" caption={caloriesCaption} />
+          <StatCard icon="location" dotColor={colors.primary} label="Distance" value={distanceKm} unit="km" caption={distanceCaption} />
+          <StatCard icon="flash" dotColor={colors.sleep} label="Active" value={activeMinutes} unit="min" caption={workoutsByTypeToday.length ? workoutsByTypeToday.map((w) => w.type).join(', ') : null} />
         </View>
 
-        <Card>
-          <View style={styles.cardHeaderRow}>
-            <View style={styles.titleWithIcon}>
-              <Ionicons name="heart" size={16} color={colors.danger} />
-              <Text style={styles.sectionTitle}>Heart Rate</Text>
+        {todayTotals.todayWorkouts.length > 0 && (
+          <Card>
+            <Text style={styles.breakdownTitle}>Today's Breakdown</Text>
+            <View style={styles.breakdownRow}>
+              <View style={[styles.breakdownIcon, { backgroundColor: colors.stepsSoft }]}>
+                <Ionicons name="footsteps-outline" size={16} color={colors.steps} />
+              </View>
+              <Text style={styles.breakdownLabel}>Steps</Text>
+              <Text style={styles.breakdownAutoTag}>Auto</Text>
+              <Text style={styles.breakdownValue}>
+                {todayTotals.stepsCount.toLocaleString()} steps · {stepsDistanceToday} km · {stepsCaloriesToday} kcal
+              </Text>
             </View>
-            <Text style={styles.caption}>Resting: {HEART_RATE_RESTING}</Text>
-          </View>
-          <View style={styles.heartRow}>
-            <Text style={styles.heartValue}>
-              {HEART_RATE_BPM} <Text style={styles.heartUnit}>BPM</Text>
-            </Text>
-            <Sparkline data={HEART_RATE_TREND} color={colors.danger} width={130} height={40} strokeWidth={2} />
-          </View>
-        </Card>
+            {workoutsByTypeToday.map((w) => (
+              <View key={w.type} style={styles.breakdownRow}>
+                <View style={[styles.breakdownIcon, { backgroundColor: colors.stepsSoft }]}>
+                  <Ionicons name={iconForType(w.type)} size={16} color={colors.steps} />
+                </View>
+                <Text style={styles.breakdownLabel}>{w.type}</Text>
+                <Text style={styles.breakdownValue}>
+                  {w.durationMin} min{w.distanceKm > 0 ? ` · ${w.distanceKm} km` : ''} · {w.caloriesKcal} kcal
+                </Text>
+              </View>
+            ))}
+          </Card>
+        )}
+
+        {heartRateAvailable && (
+          <Card>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.titleWithIcon}>
+                <Ionicons name="heart" size={16} color={colors.danger} />
+                <Text style={styles.sectionTitle}>Heart Rate</Text>
+              </View>
+              <TouchableOpacity onPress={() => Alert.alert('About Heart Rate', HEART_RATE_INFO)} hitSlop={8}>
+                <Ionicons name="information-circle-outline" size={18} color={colors.inkSoft} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.heartRow}>
+              <Text style={styles.heartValue}>
+                {hk.heartRate.bpm} <Text style={styles.heartUnit}>BPM</Text>
+              </Text>
+              <Text style={styles.caption}>Resting: {hk.heartRate.restingBpm ?? '—'}</Text>
+            </View>
+            <Text style={styles.sourceCaption}>Synced from Apple Health</Text>
+          </Card>
+        )}
 
         <Card>
           <View style={styles.cardHeaderRow}>
@@ -260,11 +306,34 @@ const makeStyles = (colors) =>
     cardHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
     titleWithIcon: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     sectionTitle: { fontSize: 15, fontWeight: '800', color: colors.ink },
+    breakdownTitle: { fontSize: 15, fontWeight: '800', color: colors.ink, marginBottom: spacing.sm },
+    breakdownRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
+    breakdownIcon: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 10,
+    },
+    breakdownLabel: { fontSize: 13.5, fontWeight: '700', color: colors.ink, marginRight: 6 },
+    breakdownAutoTag: {
+      fontSize: 9.5,
+      fontWeight: '700',
+      color: colors.inkSoft,
+      backgroundColor: colors.border,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 999,
+      overflow: 'hidden',
+    },
+    breakdownValue: { flex: 1, fontSize: 12, fontWeight: '600', color: colors.inkSoft, textAlign: 'right' },
     caption: { fontSize: 11.5, color: colors.inkSoft, fontWeight: '600' },
 
     heartRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     heartValue: { fontSize: 28, fontWeight: '800', color: colors.ink, fontVariant: ['tabular-nums'] },
     heartUnit: { fontSize: 13, fontWeight: '600', color: colors.inkSoft },
+    sourceCaption: { fontSize: 10.5, color: colors.inkFaint, fontWeight: '600', marginTop: 6 },
 
     sleepBar: { flexDirection: 'row', height: 10, borderRadius: 5, overflow: 'hidden', gap: 2 },
     sleepSeg: { height: '100%' },

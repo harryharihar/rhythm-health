@@ -5,12 +5,14 @@ import {
   clearAllData,
   getProfile,
   getSettings,
+  mealStore,
   saveProfile,
   saveSettings,
   sleepStore,
   stepsStore,
   waterStore,
   weightStore,
+  workoutStore,
 } from '../storage/storage';
 import { isSameDay, todayKey } from '../utils/dateUtils';
 import { watchTodaySteps } from '../utils/pedometer';
@@ -32,7 +34,33 @@ function computeTodayTotals(state) {
   const sleepHours = sleepEntry ? sleepEntry.hours : 0;
   const latestWeight = state.weight[0]?.weightKg ?? state.profile?.weightKg ?? null;
 
-  return { waterMl, stepsCount, sleepHours, latestWeight, sleepEntry };
+  const todayWorkouts = state.workouts.filter((e) => isSameDay(e.timestamp, today));
+  const activeMinutes = todayWorkouts.reduce((acc, e) => acc + (e.durationMin || 0), 0);
+  const workoutCaloriesKcal = todayWorkouts.reduce((acc, e) => acc + (e.caloriesKcal || 0), 0);
+  const workoutDistanceKm = todayWorkouts.reduce((acc, e) => acc + (e.distanceKm || 0), 0);
+
+  const todayMeals = state.meals.filter((e) => isSameDay(e.timestamp, today));
+  const caloriesConsumed = todayMeals.reduce((acc, e) => acc + (e.caloriesKcal || 0), 0);
+  const proteinG = todayMeals.reduce((acc, e) => acc + (e.proteinG || 0), 0);
+  const carbsG = todayMeals.reduce((acc, e) => acc + (e.carbsG || 0), 0);
+  const fatsG = todayMeals.reduce((acc, e) => acc + (e.fatsG || 0), 0);
+
+  return {
+    waterMl,
+    stepsCount,
+    sleepHours,
+    latestWeight,
+    sleepEntry,
+    activeMinutes,
+    todayWorkouts,
+    workoutCaloriesKcal,
+    workoutDistanceKm,
+    caloriesConsumed,
+    proteinG,
+    carbsG,
+    fatsG,
+    todayMeals,
+  };
 }
 
 export const useHealthStore = create((set, get) => ({
@@ -43,20 +71,24 @@ export const useHealthStore = create((set, get) => ({
   sleep: [],
   steps: [],
   weight: [],
+  workouts: [],
+  meals: [],
   autoStepsActive: false,
   rawStepsToday: 0,
 
   loadAll: async () => {
     set({ loading: true });
-    const [p, s, w, sl, st, wt] = await Promise.all([
+    const [p, s, w, sl, st, wt, wo, ml] = await Promise.all([
       getProfile(),
       getSettings(),
       waterStore.all(),
       sleepStore.all(),
       stepsStore.all(),
       weightStore.all(),
+      workoutStore.all(),
+      mealStore.all(),
     ]);
-    set({ profile: p, settings: s, water: w, sleep: sl, steps: st, weight: wt, loading: false });
+    set({ profile: p, settings: s, water: w, sleep: sl, steps: st, weight: wt, workouts: wo, meals: ml, loading: false });
   },
 
   // Loads everything from SQLite, then starts the device step sensor.
@@ -119,6 +151,16 @@ export const useHealthStore = create((set, get) => ({
     await get().updateProfile({ weightKg });
   },
 
+  addWorkout: async ({ type, durationMin, caloriesKcal, distanceKm }) => {
+    const entry = await workoutStore.add({ type, durationMin, caloriesKcal, distanceKm });
+    set((state) => ({ workouts: [entry, ...state.workouts] }));
+  },
+
+  addMeal: async ({ mealType, name, caloriesKcal, proteinG, carbsG, fatsG }) => {
+    const entry = await mealStore.add({ mealType, name, caloriesKcal, proteinG, carbsG, fatsG });
+    set((state) => ({ meals: [entry, ...state.meals] }));
+  },
+
   // Keeps a single "auto" entry per day in the steps log up to date with the
   // device's pedometer, separate from manually-added entries. Both count
   // toward todayTotals.stepsCount and the weekly chart, same as any other log.
@@ -152,6 +194,8 @@ export const useHealthStore = create((set, get) => ({
       sleep: [],
       steps: [],
       weight: [],
+      workouts: [],
+      meals: [],
       autoStepsActive: false,
     });
     await get().syncAutoSteps(get().rawStepsToday);

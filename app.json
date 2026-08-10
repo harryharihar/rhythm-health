@@ -7,7 +7,8 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.harryharihar.rhythmhealth"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +19,8 @@
       },
       "permissions": [
         "ACTIVITY_RECOGNITION"
-      ]
+      ],
+      "package": "com.harryharihar.rhythmhealth"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -30,7 +32,13 @@
           "motionPermission": "Allow Rhythm to count your steps automatically."
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "Rhythm reads heart rate, exercise minutes, and sleep data from Health to show them on your dashboard. This data never leaves your device."
+        }
+      ]
     ]
   }
 }

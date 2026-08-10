@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Keyboard, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import RingGauge from '../components/RingGauge';
@@ -8,25 +8,73 @@ import Card from '../components/Card';
 import StatCard from '../components/StatCard';
 import QuickAddSheet from '../components/QuickAddSheet';
 import { useHealth } from '../store/healthStore';
-import { spacing } from '../theme/theme';
+import { useHealthKitData } from '../health/useHealthKitData';
+import { radius, spacing } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
-import { isSameDay, sumByDay, todayKey } from '../utils/dateUtils';
-import { estimateCaloriesFromSteps, estimateDistanceKm } from '../utils/healthCalculations';
+import { dayBuckets, formatRelativeTime, isSameDay, monthBuckets, sumByBuckets, todayKey, weekBuckets } from '../utils/dateUtils';
+import {
+  estimateCaloriesFromSteps,
+  estimateCaloriesPerKm,
+  estimateDistanceKm,
+  estimateWorkoutCalories,
+  groupWorkoutsByType,
+  iconForType,
+  WORKOUT_MET,
+  WORKOUT_TYPES,
+} from '../utils/healthCalculations';
 
-// No workout-logging feature exists yet — this list is a static mockup of
-// what it will show once built.
-const RECENT_WORKOUTS = [
-  { id: 'w1', icon: 'walk-outline', title: 'Morning Run', subtitle: '5.2 km · 32 min · 320 kcal', when: '2h ago' },
-  { id: 'w2', icon: 'barbell-outline', title: 'HIIT Session', subtitle: '45 min · 480 kcal · High Intensity', when: 'Yesterday' },
-  { id: 'w3', icon: 'footsteps-outline', title: 'Evening Walk', subtitle: '2.1 km · 25 min · 150 kcal', when: '2 days ago' },
+// Each range computes its own buckets (day/week/month granularity — a full
+// year as 365 daily points would be unreadable) plus how many real days it
+// spans, so the "Avg/day" figure stays accurate regardless of bucket size.
+const RANGE_OPTIONS = [
+  { key: 'week', label: 'This Week', icon: 'today-outline', totalDays: 7, getBuckets: () => dayBuckets(7, 0, 'narrow') },
+  { key: 'lastWeek', label: 'Last Week', icon: 'arrow-undo-outline', totalDays: 7, getBuckets: () => dayBuckets(7, 7, 'narrow') },
+  { key: '2weeks', label: '2 Weeks', icon: 'calendar-outline', totalDays: 14, getBuckets: () => dayBuckets(14, 0, 'narrow') },
+  { key: 'month', label: '1 Month', icon: 'calendar-number-outline', totalDays: 30, getBuckets: () => weekBuckets(4) },
+  { key: '3months', label: '3 Months', icon: 'calendar-clear-outline', totalDays: 91, getBuckets: () => monthBuckets(3) },
+  { key: '6months', label: '6 Months', icon: 'stats-chart-outline', totalDays: 182, getBuckets: () => monthBuckets(6) },
+  { key: '9months', label: '9 Months', icon: 'bar-chart-outline', totalDays: 273, getBuckets: () => monthBuckets(9) },
+  { key: 'year', label: '1 Year', icon: 'trending-up-outline', totalDays: 365, getBuckets: () => monthBuckets(12) },
 ];
 
+// Rough daily target used only to score the "Move" ring once real workouts
+// exist — matches common general-activity guidance (~30 active min/day).
+const ACTIVE_MINUTES_GOAL = 30;
+
+function workoutSubtitle(w) {
+  const parts = [];
+  if (w.distanceKm) parts.push(`${w.distanceKm} km`);
+  if (w.durationMin) parts.push(`${w.durationMin} min`);
+  if (w.caloriesKcal) parts.push(`${w.caloriesKcal} kcal`);
+  return parts.join(' · ') || '—';
+}
+
 export default function ActivityScreen() {
-  const { profile, steps, addSteps, autoStepsActive } = useHealth();
+  const { profile, steps, workouts, todayTotals, addSteps, addWorkout, autoStepsActive } = useHealth();
   const colors = useThemeColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const hk = useHealthKitData();
+  const activeMinutes = hk.exerciseMinutes ?? todayTotals.activeMinutes;
+  const bodyWeightKg = todayTotals.latestWeight || 70;
   const [customOpen, setCustomOpen] = useState(false);
   const [customValue, setCustomValue] = useState('');
+  const [workoutOpen, setWorkoutOpen] = useState(false);
+  const [workoutType, setWorkoutType] = useState(WORKOUT_TYPES[0].label);
+  const [durationInput, setDurationInput] = useState('');
+  const [distanceInput, setDistanceInput] = useState('');
+  const [rangeKey, setRangeKey] = useState('week');
+  const [rangeOpen, setRangeOpen] = useState(false);
+  const [sheetView, setSheetView] = useState('form');
+
+  // Live clock in the header — ticks every 30s so the displayed minute is
+  // never more than 30s stale, well within "updates like a timer."
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(id);
+  }, []);
+  const nowDateLabel = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  const nowTimeLabel = now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
   const goal = profile?.goals?.stepsGoal || 10000;
   const today = todayKey();
@@ -34,15 +82,71 @@ export default function ActivityScreen() {
     () => steps.filter((e) => isSameDay(e.timestamp, today)).reduce((acc, e) => acc + e.count, 0),
     [steps, today]
   );
-  const weekData = useMemo(() => sumByDay(steps, 7, 'count'), [steps]);
-  const avgPerDay = useMemo(() => Math.round(weekData.reduce((acc, d) => acc + d.value, 0) / weekData.length), [weekData]);
-  const movePct = Math.min(100, Math.round((avgPerDay / goal) * 100));
+
+  const range = RANGE_OPTIONS.find((r) => r.key === rangeKey) || RANGE_OPTIONS[0];
+  const chartData = useMemo(() => sumByBuckets(steps, range.getBuckets(), 'count'), [steps, rangeKey]);
+  const avgPerDay = useMemo(
+    () => Math.round(chartData.reduce((acc, d) => acc + d.value, 0) / range.totalDays),
+    [chartData, range.totalDays]
+  );
+  // Active-minutes trend over the same range/buckets as steps, so the two are
+  // directly comparable when blending the Move score below.
+  const activeChartData = useMemo(() => sumByBuckets(workouts, range.getBuckets(), 'durationMin'), [workouts, rangeKey]);
+  const avgActiveMinPerDay = useMemo(
+    () => Math.round(activeChartData.reduce((acc, d) => acc + d.value, 0) / range.totalDays),
+    [activeChartData, range.totalDays]
+  );
+  const hasWorkoutsInRange = activeChartData.some((d) => d.value > 0);
+
+  const stepsPct = Math.min(100, Math.round((avgPerDay / goal) * 100));
+  const activePct = Math.min(100, Math.round((avgActiveMinPerDay / ACTIVE_MINUTES_GOAL) * 100));
+  // Steps-only users are scored purely on their step goal, unchanged from
+  // before. Once workouts exist in the range, the score credits whichever of
+  // steps-progress or active-minutes-progress is stronger, so logging a
+  // workout can actually move the needle instead of being invisible here.
+  const movePct = hasWorkoutsInRange ? Math.max(stepsPct, activePct) : stepsPct;
 
   const moveLabel =
     movePct >= 85 ? 'Peak Performance' : movePct >= 65 ? 'Active & Focused' : movePct >= 40 ? 'Building Momentum' : 'Just Getting Started';
 
-  const calories = estimateCaloriesFromSteps(todayCount);
-  const distanceKm = estimateDistanceKm(todayCount);
+  const stepsCaloriesToday = estimateCaloriesFromSteps(todayCount);
+  const workoutCaloriesToday = todayTotals.workoutCaloriesKcal || 0;
+  const calories = stepsCaloriesToday + workoutCaloriesToday;
+
+  const stepsDistanceToday = estimateDistanceKm(todayCount);
+  const workoutDistanceToday = todayTotals.workoutDistanceKm || 0;
+  const distanceKm = Math.round((stepsDistanceToday + workoutDistanceToday) * 10) / 10;
+
+  // Each logged type (Run, Cycle, ...) kept as its own row — steps stay a
+  // separate "auto" row since those come from the pedometer, not a log entry.
+  const workoutsByTypeToday = useMemo(() => groupWorkoutsByType(todayTotals.todayWorkouts), [todayTotals.todayWorkouts]);
+  // Short "which sources contributed" hint on the card itself — exact
+  // per-type numbers live in the Today's Breakdown card below, so this stays
+  // brief enough to never truncate.
+  const caloriesCaption = workoutCaloriesToday > 0 ? `steps + ${workoutsByTypeToday.map((w) => w.type).join(', ')}` : null;
+  const distanceCaption =
+    workoutDistanceToday > 0 ? `steps + ${workoutsByTypeToday.filter((w) => w.distanceKm > 0).map((w) => w.type).join(', ')}` : null;
+
+  // "Recent Workouts" only reads correctly when the range is "This Week" —
+  // once the user picks an older period, the list (and its title) need to
+  // scope to that same period instead of always showing the latest overall.
+  const rangeWorkouts = useMemo(() => {
+    const buckets = range.getBuckets();
+    if (!buckets.length) return workouts;
+    const start = buckets[0].start.getTime();
+    const end = buckets[buckets.length - 1].end.getTime();
+    return workouts.filter((w) => {
+      const t = new Date(w.timestamp).getTime();
+      return t >= start && t < end;
+    });
+  }, [workouts, rangeKey]);
+  const recentWorkouts = useMemo(() => rangeWorkouts.slice(0, 8), [rangeWorkouts]);
+
+  const workoutDurationMin = Number(durationInput) || 0;
+  const estWorkoutCalories = useMemo(
+    () => estimateWorkoutCalories(workoutType, workoutDurationMin, bodyWeightKg),
+    [workoutType, workoutDurationMin, bodyWeightKg]
+  );
 
   const submitCustom = () => {
     const n = Number(customValue);
@@ -51,19 +155,52 @@ export default function ActivityScreen() {
     setCustomOpen(false);
   };
 
+  const resetWorkoutForm = () => {
+    setWorkoutType(WORKOUT_TYPES[0].label);
+    setDurationInput('');
+    setDistanceInput('');
+    setSheetView('form');
+  };
+
+  const submitWorkout = () => {
+    const durationMin = Number(durationInput);
+    if (!(durationMin > 0)) return;
+    addWorkout({
+      type: workoutType,
+      durationMin,
+      caloriesKcal: estimateWorkoutCalories(workoutType, durationMin, bodyWeightKg),
+      distanceKm: distanceInput ? Number(distanceInput) : null,
+    });
+    resetWorkoutForm();
+    setWorkoutOpen(false);
+  };
+
+  const maxMet = useMemo(() => Math.max(...Object.values(WORKOUT_MET)), []);
+  const calorieChartRows = useMemo(
+    () =>
+      WORKOUT_TYPES.map((t) => ({
+        ...t,
+        met: WORKOUT_MET[t.label],
+        per30Min: estimateWorkoutCalories(t.label, 30, bodyWeightKg),
+        perKm: estimateCaloriesPerKm(t.label, bodyWeightKg),
+      })),
+    [bodyWeightKg]
+  );
+
   return (
     <View style={styles.flex}>
-      <LinearGradient colors={[colors.dangerGlow, 'transparent']} style={styles.ambient} pointerEvents="none" />
+      <LinearGradient colors={[colors.stepsGlow, 'transparent']} style={styles.ambient} pointerEvents="none" />
       <ScrollView style={styles.flex} contentContainerStyle={styles.container}>
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.title}>Activity</Text>
             <Text style={styles.subtitle}>Track your daily momentum</Text>
           </View>
-          <TouchableOpacity style={styles.filterPill}>
-            <Text style={styles.filterPillText}>This Week</Text>
-            <Ionicons name="chevron-down" size={14} color={colors.inkSoft} />
-          </TouchableOpacity>
+          <View style={styles.liveClock}>
+            <Text style={styles.liveClockLabel}>Today</Text>
+            <Text style={styles.liveClockTime}>{nowTimeLabel}</Text>
+            <Text style={styles.liveClockDate}>{nowDateLabel}</Text>
+          </View>
         </View>
 
         <Card contentStyle={styles.heroCard}>
@@ -71,7 +208,7 @@ export default function ActivityScreen() {
             progress={movePct / 100}
             size={100}
             strokeWidth={10}
-            color={colors.danger}
+            color={colors.steps}
             trackColor={colors.line}
             centerValue={`${movePct}%`}
             centerLabel="Move"
@@ -79,64 +216,281 @@ export default function ActivityScreen() {
           <View style={styles.heroText}>
             <Text style={styles.heroTitle}>{moveLabel}</Text>
             <Text style={styles.heroDesc}>
-              You have achieved {movePct}% of your weekly movement goal. Your cardio endurance is up 6% compared to last week.
+              {hasWorkoutsInRange
+                ? `You've averaged ${avgPerDay.toLocaleString()} steps and ${avgActiveMinPerDay} active min/day over ${range.label.toLowerCase()} — ${movePct}% of your movement goal.`
+                : `You have achieved ${movePct}% of your movement goal, averaged over ${range.label.toLowerCase()}. Log a workout below to boost today's active minutes.`}
             </Text>
           </View>
         </Card>
 
         <View style={styles.grid}>
           <TouchableOpacity style={styles.statTouchable} onPress={() => setCustomOpen(true)} activeOpacity={0.7}>
-            <StatCard icon="footsteps" dotColor={colors.danger} label="Steps" value={todayCount.toLocaleString()} unit={`/${Math.round(goal / 1000)}k`} />
+            <StatCard icon="footsteps" dotColor={colors.steps} label="Steps" value={todayCount.toLocaleString()} unit={`/${Math.round(goal / 1000)}k`} caption="Auto-tracked" />
           </TouchableOpacity>
-          <StatCard icon="flame" dotColor={colors.steps} label="Calories" value={calories} unit="kcal" />
-          <StatCard icon="location" dotColor={colors.primary} label="Distance" value={distanceKm} unit="km" />
-          <StatCard icon="flash" dotColor={colors.sleep} label="Active" value={47} unit="min" />
+          <StatCard icon="flame" dotColor={colors.primary} label="Calories" value={calories} unit="kcal" caption={caloriesCaption} />
+          <StatCard icon="location" dotColor={colors.water} label="Distance" value={distanceKm} unit="km" caption={distanceCaption} />
+          <TouchableOpacity style={styles.statTouchable} onPress={() => setWorkoutOpen(true)} activeOpacity={0.7}>
+            <StatCard icon="flash" dotColor={colors.sleep} label="Active" value={activeMinutes} unit="min" caption={workoutsByTypeToday.length ? workoutsByTypeToday.map((w) => w.type).join(', ') : null} />
+          </TouchableOpacity>
         </View>
+
+        {todayTotals.todayWorkouts.length > 0 && (
+          <Card>
+            <Text style={styles.breakdownTitle}>Today's Breakdown</Text>
+            <View style={styles.breakdownRow}>
+              <View style={[styles.breakdownIcon, { backgroundColor: colors.stepsSoft }]}>
+                <Ionicons name="footsteps-outline" size={16} color={colors.steps} />
+              </View>
+              <Text style={styles.breakdownLabel}>Steps</Text>
+              <Text style={styles.breakdownAutoTag}>Auto</Text>
+              <Text style={styles.breakdownValue}>
+                {todayCount.toLocaleString()} steps · {stepsDistanceToday} km · {stepsCaloriesToday} kcal
+              </Text>
+            </View>
+            {workoutsByTypeToday.map((w) => (
+              <View key={w.type} style={styles.breakdownRow}>
+                <View style={[styles.breakdownIcon, { backgroundColor: colors.stepsSoft }]}>
+                  <Ionicons name={iconForType(w.type)} size={16} color={colors.steps} />
+                </View>
+                <Text style={styles.breakdownLabel}>{w.type}</Text>
+                <Text style={styles.breakdownValue}>
+                  {w.durationMin} min{w.distanceKm > 0 ? ` · ${w.distanceKm} km` : ''} · {w.caloriesKcal} kcal
+                </Text>
+              </View>
+            ))}
+          </Card>
+        )}
 
         <Card>
           <View style={styles.cardHeaderRow}>
             <Text style={styles.sectionTitle}>Steps Trend</Text>
-            <Text style={styles.caption}>Avg: {avgPerDay.toLocaleString()}/day</Text>
+            <TouchableOpacity style={styles.filterPill} onPress={() => setRangeOpen(true)}>
+              <Text style={styles.filterPillText}>{range.label}</Text>
+              <Ionicons name="chevron-down" size={13} color={colors.inkSoft} />
+            </TouchableOpacity>
           </View>
-          <Sparkline data={weekData.map((d) => d.value)} color={colors.danger} width={280} height={90} strokeWidth={2.5} dots />
+          <Text style={styles.caption}>Avg: {avgPerDay.toLocaleString()}/day</Text>
+          <Sparkline data={chartData.map((d) => d.value)} color={colors.steps} width={280} height={90} strokeWidth={2.5} dots />
           <View style={styles.axisRow}>
-            {weekData.map((d) => (
-              <Text key={d.key} style={styles.axisLabel}>{d.label}</Text>
+            {chartData.map((d) => (
+              <Text key={d.key} style={styles.axisLabel} numberOfLines={1}>{d.label}</Text>
             ))}
           </View>
         </Card>
 
-        <Text style={styles.listHeading}>Recent Workouts</Text>
-        {RECENT_WORKOUTS.map((w, i) => (
-          <Card key={w.id} style={i === RECENT_WORKOUTS.length - 1 ? styles.lastCard : undefined}>
-            <View style={styles.workoutRow}>
-              <View style={[styles.workoutIcon, { backgroundColor: colors.dangerSoft }]}>
-                <Ionicons name={w.icon} size={18} color={colors.danger} />
-              </View>
-              <View style={styles.workoutText}>
-                <Text style={styles.workoutTitle}>{w.title}</Text>
-                <Text style={styles.workoutSubtitle}>{w.subtitle}</Text>
-              </View>
-              <Text style={styles.workoutWhen}>{w.when}</Text>
-            </View>
-          </Card>
-        ))}
-
-        <QuickAddSheet visible={customOpen} title="Log steps" onClose={() => setCustomOpen(false)}>
-          <TextInput
-            style={styles.input}
-            keyboardType="number-pad"
-            placeholder="Number of steps"
-            placeholderTextColor={colors.inkFaint}
-            value={customValue}
-            onChangeText={setCustomValue}
-            autoFocus
-          />
-          <TouchableOpacity style={styles.submitBtn} onPress={submitCustom}>
-            <Text style={styles.submitLabel}>Add</Text>
+        <View style={styles.cardHeaderRow}>
+          <View>
+            <Text style={styles.listHeading}>Workouts</Text>
+            <Text style={styles.caption}>{range.label}</Text>
+          </View>
+          <TouchableOpacity style={styles.logBtn} onPress={() => setWorkoutOpen(true)}>
+            <Ionicons name="add" size={14} color={colors.steps} />
+            <Text style={styles.logBtnText}>Log Workout</Text>
           </TouchableOpacity>
-        </QuickAddSheet>
+        </View>
+        {recentWorkouts.length === 0 ? (
+          <Card>
+            <Text style={styles.empty}>No workouts logged for {range.label.toLowerCase()} — tap "Log Workout" to add one.</Text>
+          </Card>
+        ) : (
+          recentWorkouts.map((w, i) => (
+            <Card key={w.id} style={i === recentWorkouts.length - 1 ? styles.lastCard : undefined}>
+              <View style={styles.workoutRow}>
+                <View style={[styles.workoutIcon, { backgroundColor: colors.stepsSoft }]}>
+                  <Ionicons name={iconForType(w.type)} size={18} color={colors.steps} />
+                </View>
+                <View style={styles.workoutText}>
+                  <Text style={styles.workoutTitle}>{w.type}</Text>
+                  <Text style={styles.workoutSubtitle}>{workoutSubtitle(w)}</Text>
+                </View>
+                <Text style={styles.workoutWhen}>{formatRelativeTime(w.timestamp)}</Text>
+              </View>
+            </Card>
+          ))
+        )}
       </ScrollView>
+
+      <QuickAddSheet visible={customOpen} title="Log steps" onClose={() => setCustomOpen(false)}>
+        <View style={styles.sheetInfoRow}>
+          <Ionicons name="information-circle-outline" size={14} color={colors.inkSoft} />
+          <Text style={styles.sheetInfoText}>Entries are recorded for today's date only.</Text>
+        </View>
+        <TextInput
+          style={styles.input}
+          keyboardType="number-pad"
+          placeholder="Number of steps"
+          placeholderTextColor={colors.inkFaint}
+          value={customValue}
+          onChangeText={setCustomValue}
+          autoFocus
+        />
+        <TouchableOpacity style={styles.submitBtn} onPress={submitCustom}>
+          <Text style={styles.submitLabel}>Add</Text>
+        </TouchableOpacity>
+      </QuickAddSheet>
+
+      <QuickAddSheet
+        visible={workoutOpen}
+        title={sheetView === 'form' ? 'Log workout' : sheetView === 'types' ? 'Workout Types' : 'How calories are estimated'}
+        onClose={() => { resetWorkoutForm(); setWorkoutOpen(false); }}
+      >
+        {sheetView !== 'form' && (
+          <TouchableOpacity style={styles.backRow} onPress={() => setSheetView('form')} hitSlop={8}>
+            <Ionicons name="arrow-back" size={16} color={colors.steps} />
+            <Text style={styles.backLabel}>Back</Text>
+          </TouchableOpacity>
+        )}
+
+        {sheetView === 'form' && (
+          <>
+            <View style={styles.sheetInfoRow}>
+              <Ionicons name="information-circle-outline" size={14} color={colors.inkSoft} />
+              <Text style={styles.sheetInfoText}>Entries are recorded for today's date only.</Text>
+            </View>
+
+            <View style={styles.fieldLabelRow}>
+              <Text style={[styles.fieldLabel, styles.fieldLabelNoMargin]}>Type</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setSheetView('types');
+                }}
+                hitSlop={8}
+              >
+                <Ionicons name="information-circle-outline" size={15} color={colors.inkSoft} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.typePicker}>
+              {WORKOUT_TYPES.map((t) => {
+                const active = workoutType === t.label;
+                return (
+                  <TouchableOpacity
+                    key={t.label}
+                    style={[styles.typeChip, active && styles.typeChipActive]}
+                    onPress={() => setWorkoutType(t.label)}
+                  >
+                    <View style={[styles.typeChipIconWrap, active && styles.typeChipIconWrapActive]}>
+                      <Ionicons name={t.icon} size={16} color={active ? colors.onAccent : colors.steps} />
+                    </View>
+                    <Text style={[styles.typeChipText, active && styles.typeChipTextActive]}>{t.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={styles.fieldLabel}>Duration</Text>
+            <View style={styles.inputRow}>
+              <View style={styles.inputIconWrap}>
+                <Ionicons name="time-outline" size={16} color={colors.steps} />
+              </View>
+              <TextInput
+                style={styles.inputField}
+                keyboardType="number-pad"
+                placeholder="e.g. 30"
+                placeholderTextColor={colors.inkFaint}
+                value={durationInput}
+                onChangeText={setDurationInput}
+                autoFocus
+              />
+              <Text style={styles.inputSuffix}>min</Text>
+            </View>
+
+            <View style={styles.calorieCard}>
+              <View style={styles.calorieIconWrap}>
+                <Ionicons name="flame" size={18} color={colors.steps} />
+              </View>
+              <View style={styles.calorieTextWrap}>
+                <Text style={styles.calorieValue}>{workoutDurationMin > 0 ? estWorkoutCalories : '—'} kcal</Text>
+                <Text style={styles.calorieCaption}>Auto-estimated from type, duration & your weight</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setSheetView('calories');
+                }}
+                hitSlop={8}
+              >
+                <Ionicons name="information-circle-outline" size={18} color={colors.steps} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.fieldLabel}>Distance (optional)</Text>
+            <View style={styles.inputRow}>
+              <View style={styles.inputIconWrap}>
+                <Ionicons name="location-outline" size={16} color={colors.steps} />
+              </View>
+              <TextInput
+                style={styles.inputField}
+                keyboardType="decimal-pad"
+                placeholder="e.g. 5.2"
+                placeholderTextColor={colors.inkFaint}
+                value={distanceInput}
+                onChangeText={setDistanceInput}
+              />
+              <Text style={styles.inputSuffix}>km</Text>
+            </View>
+
+            <TouchableOpacity style={styles.submitBtn} onPress={submitWorkout}>
+              <Text style={styles.submitLabel}>Save</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {sheetView === 'types' &&
+          WORKOUT_TYPES.map((t) => (
+            <View key={t.label} style={styles.typeInfoRow}>
+              <View style={styles.typeInfoIconWrap}>
+                <Ionicons name={t.icon} size={16} color={colors.steps} />
+              </View>
+              <View style={styles.typeInfoTextWrap}>
+                <Text style={styles.typeInfoLabel}>{t.label}</Text>
+                <Text style={styles.typeInfoDesc}>{t.desc}</Text>
+              </View>
+            </View>
+          ))}
+
+        {sheetView === 'calories' && (
+          <>
+            <View style={styles.sheetInfoRow}>
+              <Ionicons name="information-circle-outline" size={14} color={colors.inkSoft} />
+              <Text style={styles.sheetInfoText}>
+                Formula: MET × 3.5 × weight (kg) ÷ 200 × minutes. MET is a standard measure of exercise intensity — higher means more calories burned
+                per minute. {todayTotals.latestWeight ? `Using your last logged weight (${Math.round(todayTotals.latestWeight)} kg).` : 'Using a default of 70 kg — log your weight on Profile for a more accurate number.'}
+              </Text>
+            </View>
+            {calorieChartRows.map((row) => (
+              <View key={row.label} style={styles.metRow}>
+                <View style={styles.metRowHead}>
+                  <View style={styles.metIconWrap}>
+                    <Ionicons name={row.icon} size={14} color={colors.steps} />
+                  </View>
+                  <Text style={styles.metLabel}>{row.label}</Text>
+                  <Text style={styles.metValue}>~{row.per30Min} kcal / 30min</Text>
+                </View>
+                <View style={styles.metBarTrack}>
+                  <View style={[styles.metBarFill, { width: `${(row.met / maxMet) * 100}%` }]} />
+                </View>
+                <Text style={styles.metSubValue}>
+                  MET {row.met}{row.perKm ? ` · ~${row.perKm} kcal/km at a typical pace` : ''}
+                </Text>
+              </View>
+            ))}
+          </>
+        )}
+      </QuickAddSheet>
+
+      <QuickAddSheet
+        visible={rangeOpen}
+        title="Time Period"
+        accentColor={colors.steps}
+        options={RANGE_OPTIONS.map((r) => ({ label: r.label, icon: r.icon, active: r.key === rangeKey, onPress: () => setRangeKey(r.key) }))}
+        onClose={() => setRangeOpen(false)}
+      >
+        <View style={styles.sheetInfoRow}>
+          <Ionicons name="information-circle-outline" size={14} color={colors.inkSoft} />
+          <Text style={styles.sheetInfoText}>Sets how far back the Move score and Steps Trend chart above look — from this week up to a full year.</Text>
+        </View>
+      </QuickAddSheet>
     </View>
   );
 }
@@ -161,6 +515,10 @@ const makeStyles = (colors) =>
       paddingVertical: 8,
     },
     filterPillText: { fontSize: 12.5, fontWeight: '700', color: colors.ink },
+    liveClock: { alignItems: 'flex-end' },
+    liveClockLabel: { fontSize: 10.5, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.inkSoft },
+    liveClockTime: { fontSize: 18, fontWeight: '800', color: colors.ink, marginTop: 2, fontVariant: ['tabular-nums'] },
+    liveClockDate: { fontSize: 11.5, fontWeight: '500', color: colors.inkSoft, marginTop: 1 },
 
     heroCard: { flexDirection: 'row', alignItems: 'center' },
     heroText: { flex: 1, marginLeft: spacing.md },
@@ -172,11 +530,44 @@ const makeStyles = (colors) =>
 
     cardHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
     sectionTitle: { fontSize: 15, fontWeight: '800', color: colors.ink },
+    breakdownTitle: { fontSize: 15, fontWeight: '800', color: colors.ink, marginBottom: spacing.sm },
+    breakdownRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
+    breakdownIcon: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 10,
+    },
+    breakdownLabel: { fontSize: 13.5, fontWeight: '700', color: colors.ink, marginRight: 6 },
+    breakdownAutoTag: {
+      fontSize: 9.5,
+      fontWeight: '700',
+      color: colors.inkSoft,
+      backgroundColor: colors.border,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 999,
+      overflow: 'hidden',
+    },
+    breakdownValue: { flex: 1, fontSize: 12, fontWeight: '600', color: colors.inkSoft, textAlign: 'right' },
     caption: { fontSize: 11.5, color: colors.inkSoft, fontWeight: '600' },
     axisRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.xs, paddingHorizontal: 4 },
     axisLabel: { fontSize: 10, color: colors.inkSoft, fontWeight: '600' },
 
-    listHeading: { fontSize: 16, fontWeight: '800', color: colors.ink, marginTop: spacing.sm, marginBottom: spacing.sm },
+    listHeading: { fontSize: 16, fontWeight: '800', color: colors.ink },
+    logBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+      backgroundColor: colors.stepsSoft,
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+    },
+    logBtnText: { fontSize: 11.5, fontWeight: '700', color: colors.steps },
+    empty: { fontSize: 13, color: colors.inkSoft },
     lastCard: { marginBottom: spacing.xs },
     workoutRow: { flexDirection: 'row', alignItems: 'center' },
     workoutIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginRight: spacing.sm },
@@ -185,6 +576,58 @@ const makeStyles = (colors) =>
     workoutSubtitle: { fontSize: 11.5, color: colors.inkSoft, marginTop: 2 },
     workoutWhen: { fontSize: 11, color: colors.inkSoft, fontWeight: '600' },
 
+    sheetInfoRow: { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', gap: 6, marginBottom: spacing.md },
+    sheetInfoText: { fontSize: 11.5, color: colors.inkSoft, fontWeight: '500', flexShrink: 1 },
+    typePicker: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: spacing.md },
+    typeChip: {
+      flexBasis: '31%',
+      flexGrow: 1,
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 6,
+      borderRadius: radius.md,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.12,
+      shadowRadius: 6,
+      elevation: 3,
+    },
+    typeChipActive: {
+      backgroundColor: `${colors.steps}1A`,
+      borderWidth: 1.5,
+      borderColor: colors.steps,
+      shadowColor: colors.steps,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.35,
+      shadowRadius: 10,
+      elevation: 0,
+    },
+    typeChipIconWrap: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.stepsSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 6,
+    },
+    typeChipIconWrapActive: { backgroundColor: colors.steps },
+    typeChipText: { fontSize: 12.5, fontWeight: '600', color: colors.ink },
+    typeChipTextActive: { color: colors.steps, fontWeight: '700' },
+
+    fieldLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+    fieldLabelNoMargin: { marginBottom: 0 },
+    fieldLabel: {
+      fontSize: 11.5,
+      fontWeight: '700',
+      color: colors.inkSoft,
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+      marginBottom: 8,
+    },
     input: {
       backgroundColor: colors.bgElevated,
       borderRadius: 14,
@@ -196,6 +639,93 @@ const makeStyles = (colors) =>
       color: colors.ink,
       marginBottom: spacing.md,
     },
+    inputRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.bgElevated,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 10,
+      marginBottom: spacing.md,
+    },
+    inputIconWrap: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: colors.stepsSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 8,
+    },
+    inputField: {
+      flex: 1,
+      paddingVertical: 14,
+      fontSize: 15,
+      color: colors.ink,
+    },
+    inputSuffix: {
+      fontSize: 12.5,
+      fontWeight: '700',
+      color: colors.inkSoft,
+      marginLeft: 6,
+    },
+    calorieCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.stepsSoft,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.steps,
+      padding: 12,
+      marginBottom: spacing.md,
+    },
+    calorieIconWrap: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.bgElevated,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 10,
+    },
+    calorieTextWrap: { flex: 1 },
+    calorieValue: { fontSize: 16, fontWeight: '800', color: colors.ink },
+    calorieCaption: { fontSize: 11, fontWeight: '500', color: colors.inkSoft, marginTop: 1 },
     submitBtn: { backgroundColor: colors.steps, borderRadius: 999, paddingVertical: 14, alignItems: 'center' },
     submitLabel: { color: colors.onAccent, fontWeight: '800', fontSize: 14 },
+
+    metRow: { marginBottom: spacing.md },
+    metRowHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+    metIconWrap: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: colors.stepsSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 8,
+    },
+    metLabel: { flex: 1, fontSize: 13.5, fontWeight: '700', color: colors.ink },
+    metValue: { fontSize: 12.5, fontWeight: '700', color: colors.steps },
+    metBarTrack: { height: 6, borderRadius: 3, backgroundColor: colors.border, overflow: 'hidden', marginBottom: 4 },
+    metBarFill: { height: '100%', borderRadius: 3, backgroundColor: colors.steps },
+    metSubValue: { fontSize: 11, fontWeight: '500', color: colors.inkSoft, marginLeft: 32 },
+
+    typeInfoRow: { flexDirection: 'row', marginBottom: spacing.md },
+    typeInfoIconWrap: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: colors.stepsSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 10,
+    },
+    typeInfoTextWrap: { flex: 1 },
+    typeInfoLabel: { fontSize: 13.5, fontWeight: '700', color: colors.ink, marginBottom: 2 },
+    typeInfoDesc: { fontSize: 12, fontWeight: '500', color: colors.inkSoft, lineHeight: 17 },
+
+    backRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.lg },
+    backLabel: { fontSize: 14, fontWeight: '700', color: colors.steps },
   });

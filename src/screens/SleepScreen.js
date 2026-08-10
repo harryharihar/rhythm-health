@@ -7,17 +7,16 @@ import Sparkline from '../components/Sparkline';
 import Card from '../components/Card';
 import QuickAddSheet from '../components/QuickAddSheet';
 import { useHealth } from '../store/healthStore';
+import { useHealthKitData } from '../health/useHealthKitData';
 import { spacing } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
 import { formatHoursMinutes, sumByDay } from '../utils/dateUtils';
 
 const QUALITY = ['Poor', 'Fair', 'Good', 'Great', 'Excellent'];
 
-// No bedtime/wake-time capture or sleep-stage sensor exists yet — those two
-// fields and the stage split below are static/estimated. Total duration and
-// the 7-night trend are real, from logged entries.
-const BEDTIME = '11:15 PM';
-const WAKE_TIME = '6:38 AM';
+// No sleep-stage sensor exists — the stage split below is an estimate applied
+// to the real logged total. Bedtime/wake time and duration are real, typed in
+// when logging (free text, e.g. "11:15 PM" — no time-picker dependency yet).
 const STAGE_RATIOS = { deep: 0.24, light: 0.53, rem: 0.2, awake: 0.03 };
 
 function withAlpha(hex, alpha) {
@@ -32,9 +31,12 @@ export default function SleepScreen() {
   const { profile, sleep, todayTotals, addSleep } = useHealth();
   const colors = useThemeColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const hk = useHealthKitData();
   const [logOpen, setLogOpen] = useState(false);
   const [hoursInput, setHoursInput] = useState('7.5');
   const [quality, setQuality] = useState(3);
+  const [bedtimeInput, setBedtimeInput] = useState('');
+  const [wakeTimeInput, setWakeTimeInput] = useState('');
 
   const goal = profile?.goals?.sleepGoalHours || 8;
   const sleepHours = todayTotals.sleepHours || 0;
@@ -49,7 +51,9 @@ export default function SleepScreen() {
   const qualityLabel =
     score >= 85 ? 'Excellent Sleep Quality' : score >= 65 ? 'Good Sleep Quality' : score >= 40 ? 'Fair Sleep Quality' : 'Needs Improvement';
 
-  const stages = sleepHours > 0
+  const stages = hk.sleepStages
+    ? { deep: hk.sleepStages.deepHours, light: hk.sleepStages.lightHours, rem: hk.sleepStages.remHours, awake: hk.sleepStages.awakeHours }
+    : sleepHours > 0
     ? {
         deep: sleepHours * STAGE_RATIOS.deep,
         light: sleepHours * STAGE_RATIOS.light,
@@ -62,7 +66,9 @@ export default function SleepScreen() {
 
   const submit = () => {
     const hours = Number(hoursInput);
-    if (hours > 0) addSleep({ hours, quality });
+    if (hours > 0) addSleep({ hours, quality, bedtime: bedtimeInput.trim() || null, wakeTime: wakeTimeInput.trim() || null });
+    setBedtimeInput('');
+    setWakeTimeInput('');
     setLogOpen(false);
   };
 
@@ -112,11 +118,11 @@ export default function SleepScreen() {
               </View>
               <View style={styles.durationSide}>
                 <Text style={styles.caption}>Bedtime</Text>
-                <Text style={styles.durationSideValue}>{BEDTIME}</Text>
+                <Text style={styles.durationSideValue}>{lastEntry?.bedtime || '—'}</Text>
               </View>
               <View style={styles.durationSide}>
                 <Text style={styles.caption}>Wake Time</Text>
-                <Text style={styles.durationSideValue}>{WAKE_TIME}</Text>
+                <Text style={styles.durationSideValue}>{lastEntry?.wakeTime || '—'}</Text>
               </View>
             </View>
           </Card>
@@ -177,32 +183,48 @@ export default function SleepScreen() {
             </View>
           </View>
         </Card>
-
-        <QuickAddSheet visible={logOpen} title="Log last night's sleep" onClose={() => setLogOpen(false)}>
-          <TextInput
-            style={styles.input}
-            keyboardType="decimal-pad"
-            placeholder="Hours slept, e.g. 7.5"
-            placeholderTextColor={colors.inkFaint}
-            value={hoursInput}
-            onChangeText={setHoursInput}
-          />
-          <View style={styles.qualityPicker}>
-            {QUALITY.map((label, i) => (
-              <TouchableOpacity
-                key={label}
-                style={[styles.qualityChip, quality === i && styles.qualityChipActive]}
-                onPress={() => setQuality(i)}
-              >
-                <Text style={[styles.qualityChipText, quality === i && styles.qualityChipTextActive]}>{label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <TouchableOpacity style={styles.submitBtn} onPress={submit}>
-            <Text style={styles.submitLabel}>Save</Text>
-          </TouchableOpacity>
-        </QuickAddSheet>
       </ScrollView>
+
+      <QuickAddSheet visible={logOpen} title="Log last night's sleep" onClose={() => setLogOpen(false)}>
+        <TextInput
+          style={styles.input}
+          keyboardType="decimal-pad"
+          placeholder="Hours slept, e.g. 7.5"
+          placeholderTextColor={colors.inkFaint}
+          value={hoursInput}
+          onChangeText={setHoursInput}
+        />
+        <View style={styles.macroInputRow}>
+          <TextInput
+            style={[styles.input, styles.halfInput]}
+            placeholder="Bedtime, e.g. 11:15 PM"
+            placeholderTextColor={colors.inkFaint}
+            value={bedtimeInput}
+            onChangeText={setBedtimeInput}
+          />
+          <TextInput
+            style={[styles.input, styles.halfInput]}
+            placeholder="Wake time, e.g. 6:38 AM"
+            placeholderTextColor={colors.inkFaint}
+            value={wakeTimeInput}
+            onChangeText={setWakeTimeInput}
+          />
+        </View>
+        <View style={styles.qualityPicker}>
+          {QUALITY.map((label, i) => (
+            <TouchableOpacity
+              key={label}
+              style={[styles.qualityChip, quality === i && styles.qualityChipActive]}
+              onPress={() => setQuality(i)}
+            >
+              <Text style={[styles.qualityChipText, quality === i && styles.qualityChipTextActive]}>{label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <TouchableOpacity style={styles.submitBtn} onPress={submit}>
+          <Text style={styles.submitLabel}>Save</Text>
+        </TouchableOpacity>
+      </QuickAddSheet>
     </View>
   );
 }
@@ -278,6 +300,8 @@ const makeStyles = (colors) =>
       color: colors.ink,
       marginBottom: spacing.md,
     },
+    macroInputRow: { flexDirection: 'row', gap: spacing.sm },
+    halfInput: { flex: 1 },
     qualityPicker: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: spacing.lg },
     qualityChip: {
       paddingHorizontal: 14,

@@ -78,13 +78,43 @@ async function runMigrations(db) {
       timestamp TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_weight_logs_timestamp ON weight_logs(timestamp);
+
+    CREATE TABLE IF NOT EXISTS workouts (
+      id TEXT PRIMARY KEY,
+      type TEXT,
+      durationMin REAL,
+      caloriesKcal REAL,
+      distanceKm REAL,
+      timestamp TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_workouts_timestamp ON workouts(timestamp);
+
+    CREATE TABLE IF NOT EXISTS meals (
+      id TEXT PRIMARY KEY,
+      mealType TEXT,
+      name TEXT,
+      caloriesKcal REAL,
+      proteinG REAL,
+      carbsG REAL,
+      fatsG REAL,
+      timestamp TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_meals_timestamp ON meals(timestamp);
   `);
 
-  // settings.notificationTime was added after the initial release — CREATE TABLE IF
-  // NOT EXISTS above won't add it to a settings table that already exists on-device.
-  const settingsCols = await db.getAllAsync('PRAGMA table_info(settings)');
-  if (!settingsCols.some((c) => c.name === 'notificationTime')) {
-    await db.execAsync('ALTER TABLE settings ADD COLUMN notificationTime TEXT');
+  // Columns added after the initial release — CREATE TABLE IF NOT EXISTS above
+  // won't add them to tables that already exist on-device.
+  await addColumnIfMissing(db, 'settings', 'notificationTime', 'TEXT');
+  await addColumnIfMissing(db, 'profile', 'calorieGoal', 'INTEGER');
+  await addColumnIfMissing(db, 'profile', 'proteinGoalG', 'REAL');
+  await addColumnIfMissing(db, 'profile', 'carbsGoalG', 'REAL');
+  await addColumnIfMissing(db, 'profile', 'fatsGoalG', 'REAL');
+}
+
+async function addColumnIfMissing(db, table, column, sqlType) {
+  const cols = await db.getAllAsync(`PRAGMA table_info(${table})`);
+  if (!cols.some((c) => c.name === column)) {
+    await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${sqlType}`);
   }
 }
 
@@ -105,6 +135,10 @@ export const DEFAULT_PROFILE = {
     stepsGoal: 10000,
     waterGoalMl: 2500,
     sleepGoalHours: 8,
+    calorieGoal: 2100,
+    proteinGoalG: 120,
+    carbsGoalG: 220,
+    fatsGoalG: 70,
   },
   createdAt: null,
 };
@@ -121,6 +155,10 @@ function rowToProfile(row) {
       stepsGoal: row.stepsGoal,
       waterGoalMl: row.waterGoalMl,
       sleepGoalHours: row.sleepGoalHours,
+      calorieGoal: row.calorieGoal ?? DEFAULT_PROFILE.goals.calorieGoal,
+      proteinGoalG: row.proteinGoalG ?? DEFAULT_PROFILE.goals.proteinGoalG,
+      carbsGoalG: row.carbsGoalG ?? DEFAULT_PROFILE.goals.carbsGoalG,
+      fatsGoalG: row.fatsGoalG ?? DEFAULT_PROFILE.goals.fatsGoalG,
     },
     createdAt: row.createdAt,
   };
@@ -137,12 +175,14 @@ export async function saveProfile(profile) {
   const withTimestamp = { ...profile, createdAt: profile.createdAt || new Date().toISOString() };
   const g = withTimestamp.goals || DEFAULT_PROFILE.goals;
   await db.runAsync(
-    `INSERT INTO profile (id, name, age, heightCm, weightKg, targetWeightKg, gender, stepsGoal, waterGoalMl, sleepGoalHours, createdAt)
-     VALUES (1, $name, $age, $heightCm, $weightKg, $targetWeightKg, $gender, $stepsGoal, $waterGoalMl, $sleepGoalHours, $createdAt)
+    `INSERT INTO profile (id, name, age, heightCm, weightKg, targetWeightKg, gender, stepsGoal, waterGoalMl, sleepGoalHours, calorieGoal, proteinGoalG, carbsGoalG, fatsGoalG, createdAt)
+     VALUES (1, $name, $age, $heightCm, $weightKg, $targetWeightKg, $gender, $stepsGoal, $waterGoalMl, $sleepGoalHours, $calorieGoal, $proteinGoalG, $carbsGoalG, $fatsGoalG, $createdAt)
      ON CONFLICT(id) DO UPDATE SET
        name = excluded.name, age = excluded.age, heightCm = excluded.heightCm, weightKg = excluded.weightKg,
        targetWeightKg = excluded.targetWeightKg, gender = excluded.gender, stepsGoal = excluded.stepsGoal,
-       waterGoalMl = excluded.waterGoalMl, sleepGoalHours = excluded.sleepGoalHours, createdAt = excluded.createdAt`,
+       waterGoalMl = excluded.waterGoalMl, sleepGoalHours = excluded.sleepGoalHours,
+       calorieGoal = excluded.calorieGoal, proteinGoalG = excluded.proteinGoalG,
+       carbsGoalG = excluded.carbsGoalG, fatsGoalG = excluded.fatsGoalG, createdAt = excluded.createdAt`,
     {
       $name: withTimestamp.name,
       $age: withTimestamp.age,
@@ -153,6 +193,10 @@ export async function saveProfile(profile) {
       $stepsGoal: g.stepsGoal,
       $waterGoalMl: g.waterGoalMl,
       $sleepGoalHours: g.sleepGoalHours,
+      $calorieGoal: g.calorieGoal ?? DEFAULT_PROFILE.goals.calorieGoal,
+      $proteinGoalG: g.proteinGoalG ?? DEFAULT_PROFILE.goals.proteinGoalG,
+      $carbsGoalG: g.carbsGoalG ?? DEFAULT_PROFILE.goals.carbsGoalG,
+      $fatsGoalG: g.fatsGoalG ?? DEFAULT_PROFILE.goals.fatsGoalG,
       $createdAt: withTimestamp.createdAt,
     }
   );
@@ -239,6 +283,8 @@ export const waterStore = logTable('water_logs', ['amountMl']);
 export const sleepStore = logTable('sleep_logs', ['hours', 'quality', 'bedtime', 'wakeTime']);
 export const stepsStore = logTable('steps_logs', ['count', 'source']);
 export const weightStore = logTable('weight_logs', ['weightKg']);
+export const workoutStore = logTable('workouts', ['type', 'durationMin', 'caloriesKcal', 'distanceKm']);
+export const mealStore = logTable('meals', ['mealType', 'name', 'caloriesKcal', 'proteinG', 'carbsG', 'fatsG']);
 
 // ---------- Danger zone ----------
 
@@ -251,19 +297,23 @@ export async function clearAllData() {
     DELETE FROM sleep_logs;
     DELETE FROM steps_logs;
     DELETE FROM weight_logs;
+    DELETE FROM workouts;
+    DELETE FROM meals;
   `);
 }
 
 export async function exportAllData() {
   // Useful for a future "export my data" feature — reads everything back out
   // as one plain object, still entirely local.
-  const [profile, settings, water, sleep, steps, weight] = await Promise.all([
+  const [profile, settings, water, sleep, steps, weight, workouts, meals] = await Promise.all([
     getProfile(),
     getSettings(),
     waterStore.all(),
     sleepStore.all(),
     stepsStore.all(),
     weightStore.all(),
+    workoutStore.all(),
+    mealStore.all(),
   ]);
-  return { profile, settings, water, sleep, steps, weight, exportedAt: new Date().toISOString() };
+  return { profile, settings, water, sleep, steps, weight, workouts, meals, exportedAt: new Date().toISOString() };
 }

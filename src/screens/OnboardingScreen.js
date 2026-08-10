@@ -1,25 +1,27 @@
 import React, { useMemo, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { glow, radius, spacing } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
 import { useHealth } from '../store/healthStore';
+
+export const GENDER_OPTIONS = [
+  { value: 'female', label: 'Female' },
+  { value: 'male', label: 'Male' },
+  { value: 'other', label: 'Other' },
+  { value: 'unspecified', label: 'Prefer not to say' },
+];
 
 export default function OnboardingScreen() {
   const { updateProfile } = useHealth();
   const colors = useThemeColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
+  const [gender, setGender] = useState('unspecified');
   const [heightCm, setHeightCm] = useState('');
   const [weightKg, setWeightKg] = useState('');
   const [saving, setSaving] = useState(false);
@@ -32,6 +34,7 @@ export default function OnboardingScreen() {
     await updateProfile({
       name: name.trim(),
       age: age ? Number(age) : null,
+      gender,
       heightCm: Number(heightCm),
       weightKg: Number(weightKg),
       targetWeightKg: Number(weightKg),
@@ -41,12 +44,18 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <View style={styles.flex}>
       <LinearGradient colors={[colors.primaryGlow, 'transparent']} style={styles.ambient} pointerEvents="none" />
-      <ScrollView contentContainerStyle={styles.container}>
+      <KeyboardAwareScrollView
+        contentContainerStyle={StyleSheet.flatten([
+          styles.container,
+          { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom + spacing.xl },
+        ])}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid
+        extraScrollHeight={24}
+        keyboardOpeningTime={0}
+      >
         <View style={[styles.mark, glow(colors.primary, 24, 0.6)]}>
           <Text style={styles.markText}>♥</Text>
         </View>
@@ -58,6 +67,22 @@ export default function OnboardingScreen() {
 
         <Field styles={styles} colors={colors} label="Your name" value={name} onChangeText={setName} placeholder="Asha" />
         <Field styles={styles} colors={colors} label="Age" value={age} onChangeText={setAge} placeholder="28" keyboardType="number-pad" />
+
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Gender</Text>
+          <View style={styles.genderRow}>
+            {GENDER_OPTIONS.map((opt) => (
+              <TouchableOpacity
+                key={opt.value}
+                style={[styles.genderChip, gender === opt.value && styles.genderChipActive]}
+                onPress={() => setGender(opt.value)}
+              >
+                <Text style={[styles.genderChipText, gender === opt.value && styles.genderChipTextActive]}>{opt.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
         <Field styles={styles} colors={colors} label="Height (cm)" value={heightCm} onChangeText={setHeightCm} placeholder="165" keyboardType="decimal-pad" />
         <Field styles={styles} colors={colors} label="Current weight (kg)" value={weightKg} onChangeText={setWeightKg} placeholder="68" keyboardType="decimal-pad" />
 
@@ -68,8 +93,8 @@ export default function OnboardingScreen() {
         >
           <Text style={styles.buttonText}>{saving ? 'Setting up…' : 'Get started'}</Text>
         </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </View>
   );
 }
 
@@ -90,7 +115,7 @@ const makeStyles = (colors) =>
   StyleSheet.create({
     flex: { flex: 1, backgroundColor: colors.bg },
     ambient: { position: 'absolute', top: 0, left: 0, right: 0, height: 360 },
-    container: { padding: spacing.xl, paddingTop: 72, flexGrow: 1 },
+    container: { paddingHorizontal: spacing.xl, flexGrow: 1 },
     mark: {
       width: 56,
       height: 56,
@@ -143,6 +168,18 @@ const makeStyles = (colors) =>
       borderWidth: 1,
       borderColor: colors.border,
     },
+    genderRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    genderChip: {
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: 999,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    genderChipActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
+    genderChipText: { fontSize: 13, fontWeight: '600', color: colors.inkSoft },
+    genderChipTextActive: { color: colors.primary },
     button: {
       backgroundColor: colors.primary,
       borderRadius: radius.pill,

@@ -7,7 +7,7 @@ import { useThemeColors } from '../theme/useTheme';
 // `icon` opts into the badge layout (icon chip + label/value stacked to its
 // right), matching the dashboard reference. Omit it to get the original
 // dot-indicator layout (still used by ActivityScreen).
-export default function StatCard({ dotColor, icon, label, value, unit }) {
+export default function StatCard({ dotColor, icon, label, value, unit, caption }) {
   const colors = useThemeColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
@@ -22,6 +22,11 @@ export default function StatCard({ dotColor, icon, label, value, unit }) {
           <Text style={styles.value}>
             {value} {unit ? <Text style={styles.unit}>{unit}</Text> : null}
           </Text>
+          {caption ? (
+            <Text style={styles.caption} numberOfLines={1}>
+              {caption}
+            </Text>
+          ) : null}
         </View>
       </View>
     );
@@ -102,5 +107,11 @@ const makeStyles = (colors) =>
       fontSize: 11,
       fontWeight: '500',
       color: colors.inkSoft,
+    },
+    caption: {
+      fontSize: 9.5,
+      fontWeight: '600',
+      color: colors.inkFaint,
+      marginTop: 2,
     },
   });

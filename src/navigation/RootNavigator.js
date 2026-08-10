@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import HomeScreen from '../screens/HomeScreen';
 import ActivityScreen from '../screens/ActivityScreen';
 import NutritionScreen from '../screens/NutritionScreen';
@@ -22,10 +23,10 @@ const ICONS = {
   Profile: 'person',
 };
 
-function TabIcon({ name, focused, accent, color }) {
+function TabIcon({ name, focused, accent, onAccent, color }) {
   return (
-    <View style={[styles.iconWrap, focused && { backgroundColor: `${accent}22` }, focused && glow(accent, 10, 0.5)]}>
-      <Ionicons name={focused ? ICONS[name] : `${ICONS[name]}-outline`} size={18} color={color} />
+    <View style={[styles.iconWrap, focused && { backgroundColor: accent }, focused && glow(accent, 8, 0.5)]}>
+      <Ionicons name={focused ? ICONS[name] : `${ICONS[name]}-outline`} size={18} color={focused ? onAccent : color} />
     </View>
   );
 }
@@ -33,6 +34,7 @@ function TabIcon({ name, focused, accent, color }) {
 export default function RootNavigator() {
   const colors = useThemeColors();
   const isDark = useHealthStore((s) => s.settings.darkMode);
+  const insets = useSafeAreaInsets();
 
   const tabAccent = {
     Home: colors.primary,
@@ -58,12 +60,17 @@ export default function RootNavigator() {
             backgroundColor: colors.bgElevated,
             borderTopColor: colors.border,
             borderTopWidth: 1,
-            height: 86,
+            // Fixed height with no inset awareness left the labels sitting
+            // behind the system nav bar on 3-button-nav Android devices —
+            // the tab bar's own background needs to extend into that space
+            // (paddingBottom) while the actual icons/labels stay above it.
+            height: 58 + insets.bottom,
             paddingTop: 10,
+            paddingBottom: insets.bottom,
           },
           tabBarLabelStyle: { fontSize: 10.5, fontWeight: '700', marginTop: 2 },
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon name={route.name} focused={focused} accent={tabAccent[route.name]} color={color} />
+            <TabIcon name={route.name} focused={focused} accent={tabAccent[route.name]} onAccent={colors.onAccent} color={color} />
           ),
         })}
       >
