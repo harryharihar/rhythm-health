@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, glow, spacing } from '../theme/theme';
+import { glow, spacing } from '../theme/theme';
+import { useThemeColors } from '../theme/useTheme';
 
 // data: [{ key, label, value }], each `value` already 0..max
 export default function WeekBars({ data, color, trackColor, height = 70 }) {
+  const colors = useThemeColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const max = Math.max(1, ...data.map((d) => d.value));
 
   return (
@@ -42,33 +45,34 @@ export default function WeekBars({ data, color, trackColor, height = 70 }) {
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 7,
-    marginTop: spacing.xs,
-  },
-  barTrack: {
-    flex: 1,
-    height: '100%',
-    justifyContent: 'flex-end',
-  },
-  bar: {
-    width: '100%',
-    borderRadius: 6,
-    minHeight: 4,
-  },
-  labelsRow: {
-    flexDirection: 'row',
-    gap: 7,
-    marginTop: spacing.xs,
-  },
-  dayLabel: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 9,
-    color: colors.inkSoft,
-    fontWeight: '600',
-  },
-});
+const makeStyles = (colors) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: 7,
+      marginTop: spacing.xs,
+    },
+    barTrack: {
+      flex: 1,
+      height: '100%',
+      justifyContent: 'flex-end',
+    },
+    bar: {
+      width: '100%',
+      borderRadius: 6,
+      minHeight: 4,
+    },
+    labelsRow: {
+      flexDirection: 'row',
+      gap: 7,
+      marginTop: spacing.xs,
+    },
+    dayLabel: {
+      flex: 1,
+      textAlign: 'center',
+      fontSize: 9,
+      color: colors.inkSoft,
+      fontWeight: '600',
+    },
+  });

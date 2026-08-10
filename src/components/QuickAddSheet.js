@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { colors, radius, shadow, spacing } from '../theme/theme';
+import { radius, shadow, spacing } from '../theme/theme';
+import { useThemeColors } from '../theme/useTheme';
 
 // Deliberately NOT using RN's <Modal>: on Android in particular, Modal opens a
 // separate native window, and the first tap after the soft keyboard is up gets
@@ -9,6 +10,8 @@ import { colors, radius, shadow, spacing } from '../theme/theme';
 // Rendering the sheet as a plain absolutely-positioned overlay in the same
 // window sidesteps that entirely.
 export default function QuickAddSheet({ visible, title, options, onClose, children }) {
+  const colors = useThemeColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const [rendered, setRendered] = useState(visible);
   const translateY = useRef(new Animated.Value(40)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -68,55 +71,56 @@ export default function QuickAddSheet({ visible, title, options, onClose, childr
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'flex-end',
-    zIndex: 50,
-    elevation: 50,
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-  },
-  sheetWrap: {
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: colors.bgElevated,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderBottomWidth: 0,
-    padding: spacing.xl,
-    paddingBottom: spacing.xxl,
-    ...shadow.card,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.borderStrong,
-    alignSelf: 'center',
-    marginBottom: spacing.lg,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.ink,
-    marginBottom: spacing.lg,
-  },
-  option: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  optionLabel: { fontSize: 15, fontWeight: '600', color: colors.ink },
-  cancel: { paddingVertical: 12, alignItems: 'center', marginTop: spacing.xs },
-  cancelLabel: { fontSize: 14, fontWeight: '600', color: colors.inkSoft },
-});
+const makeStyles = (colors) =>
+  StyleSheet.create({
+    overlay: {
+      ...StyleSheet.absoluteFillObject,
+      justifyContent: 'flex-end',
+      zIndex: 50,
+      elevation: 50,
+    },
+    backdrop: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+    },
+    sheetWrap: {
+      justifyContent: 'flex-end',
+    },
+    sheet: {
+      backgroundColor: colors.bgElevated,
+      borderTopLeftRadius: radius.xl,
+      borderTopRightRadius: radius.xl,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderBottomWidth: 0,
+      padding: spacing.xl,
+      paddingBottom: spacing.xxl,
+      ...shadow.card,
+    },
+    handle: {
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.borderStrong,
+      alignSelf: 'center',
+      marginBottom: spacing.lg,
+    },
+    title: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.ink,
+      marginBottom: spacing.lg,
+    },
+    option: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginBottom: spacing.sm,
+    },
+    optionLabel: { fontSize: 15, fontWeight: '600', color: colors.ink },
+    cancel: { paddingVertical: 12, alignItems: 'center', marginTop: spacing.xs },
+    cancelLabel: { fontSize: 14, fontWeight: '600', color: colors.inkSoft },
+  });

@@ -1,39 +1,88 @@
-// Design tokens for the "Rhythm" visual direction — dark, premium, glow-accented.
-// One source of truth for color, spacing and type so every screen stays consistent.
+// Design tokens for the "Rhythm" visual direction.
+// Two palettes (dark "premium/glow" and light "calm/organic") sharing the
+// same key set, so every component can stay palette-agnostic and just read
+// whichever one is active via useThemeColors().
 
-export const colors = {
-  bg: '#080C0B',
-  bgElevated: '#0E1613',
-  surface: '#121A17',
-  surfaceGlass: 'rgba(255,255,255,0.045)',
-  surfaceGlassStrong: 'rgba(255,255,255,0.08)',
-  border: 'rgba(255,255,255,0.08)',
-  borderStrong: 'rgba(255,255,255,0.16)',
+export const darkColors = {
+  // Neutral cool charcoal, not hue-tinted — a green-tinted background made the
+  // primary accent (also green) blend into the surface instead of popping off it.
+  bg: '#0A0C0F',
+  bgElevated: '#12161C',
+  surface: '#181D24',
+  surfaceGlass: 'rgba(255,255,255,0.05)',
+  surfaceGlassStrong: 'rgba(255,255,255,0.09)',
+  border: 'rgba(255,255,255,0.10)',
+  borderStrong: 'rgba(255,255,255,0.20)',
 
-  ink: '#F4F8F6',
-  inkSoft: '#8CA29A',
-  inkFaint: '#4C5B56',
-  line: 'rgba(255,255,255,0.08)',
+  ink: '#F6F8FA',
+  inkSoft: '#9AA3AC',
+  inkFaint: '#565E68',
+  line: 'rgba(255,255,255,0.10)',
 
-  primary: '#33E6A6',
-  primaryGlow: 'rgba(51,230,166,0.45)',
-  primarySoft: 'rgba(51,230,166,0.14)',
+  // Text color to place on top of a solid accent-colored surface (buttons, avatars).
+  onAccent: '#0A0C0F',
 
-  steps: '#F6B23C',
-  stepsGlow: 'rgba(246,178,60,0.45)',
-  stepsSoft: 'rgba(246,178,60,0.14)',
+  primary: '#2FEFAA',
+  primaryGlow: 'rgba(47,239,170,0.5)',
+  primarySoft: 'rgba(47,239,170,0.16)',
 
-  water: '#3EC3FF',
-  waterGlow: 'rgba(62,195,255,0.45)',
-  waterSoft: 'rgba(62,195,255,0.14)',
+  steps: '#FFB020',
+  stepsGlow: 'rgba(255,176,32,0.5)',
+  stepsSoft: 'rgba(255,176,32,0.16)',
 
-  sleep: '#B49BFF',
-  sleepGlow: 'rgba(180,155,255,0.45)',
-  sleepSoft: 'rgba(180,155,255,0.14)',
+  water: '#22C7FF',
+  waterGlow: 'rgba(34,199,255,0.5)',
+  waterSoft: 'rgba(34,199,255,0.16)',
 
-  danger: '#FF6B5E',
-  dangerGlow: 'rgba(255,107,94,0.45)',
-  dangerSoft: 'rgba(255,107,94,0.14)',
+  sleep: '#B388FF',
+  sleepGlow: 'rgba(179,136,255,0.5)',
+  sleepSoft: 'rgba(179,136,255,0.16)',
+
+  danger: '#FF5A4D',
+  dangerGlow: 'rgba(255,90,77,0.5)',
+  dangerSoft: 'rgba(255,90,77,0.16)',
+
+  white: '#FFFFFF',
+};
+
+export const lightColors = {
+  // Page background needs to read clearly darker than the white cards sitting
+  // on it — too close in value and every card looks like a dull gray blob.
+  bg: '#E9EDEA',
+  bgElevated: '#FFFFFF',
+  surface: '#FFFFFF',
+  surfaceGlass: 'rgba(15,35,28,0.035)',
+  surfaceGlassStrong: 'rgba(15,35,28,0.07)',
+  border: '#DCE4DE',
+  borderStrong: '#C2D0C6',
+
+  ink: '#0F231C',
+  inkSoft: '#55695E',
+  inkFaint: '#94A79B',
+  line: '#E3EBE4',
+
+  // Text color to place on top of a solid accent-colored surface (buttons, avatars).
+  onAccent: '#FFFFFF',
+
+  primary: '#059669',
+  primaryGlow: 'rgba(5,150,105,0.35)',
+  primarySoft: 'rgba(5,150,105,0.14)',
+
+  steps: '#D97706',
+  stepsGlow: 'rgba(217,119,6,0.32)',
+  stepsSoft: 'rgba(217,119,6,0.14)',
+
+  water: '#0284C7',
+  waterGlow: 'rgba(2,132,199,0.32)',
+  waterSoft: 'rgba(2,132,199,0.14)',
+
+  sleep: '#7C3AED',
+  sleepGlow: 'rgba(124,58,237,0.32)',
+  sleepSoft: 'rgba(124,58,237,0.14)',
+
+  danger: '#DC2626',
+  dangerGlow: 'rgba(220,38,38,0.32)',
+  dangerSoft: 'rgba(220,38,38,0.14)',
 
   white: '#FFFFFF',
 };
@@ -103,8 +152,8 @@ export function glow(color, radius = 18, opacity = 0.55) {
   };
 }
 
-// Per-metric accent bundle, so screens can do metric('water').color etc.
-export const metric = (key) => {
+// Per-metric accent bundle: metric('water', colors) => { color, soft, glow, label, icon }
+export const metric = (key, colors) => {
   const map = {
     steps: { color: colors.steps, soft: colors.stepsSoft, glow: colors.stepsGlow, label: 'Steps', icon: '👣' },
     water: { color: colors.water, soft: colors.waterSoft, glow: colors.waterGlow, label: 'Water', icon: '💧' },

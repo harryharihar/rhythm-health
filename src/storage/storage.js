@@ -43,7 +43,8 @@ async function runMigrations(db) {
     CREATE TABLE IF NOT EXISTS settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       darkMode INTEGER,
-      remindersEnabled INTEGER
+      remindersEnabled INTEGER,
+      notificationTime TEXT
     );
 
     CREATE TABLE IF NOT EXISTS water_logs (
@@ -78,6 +79,13 @@ async function runMigrations(db) {
     );
     CREATE INDEX IF NOT EXISTS idx_weight_logs_timestamp ON weight_logs(timestamp);
   `);
+
+  // settings.notificationTime was added after the initial release — CREATE TABLE IF
+  // NOT EXISTS above won't add it to a settings table that already exists on-device.
+  const settingsCols = await db.getAllAsync('PRAGMA table_info(settings)');
+  if (!settingsCols.some((c) => c.name === 'notificationTime')) {
+    await db.execAsync('ALTER TABLE settings ADD COLUMN notificationTime TEXT');
+  }
 }
 
 function makeId() {
@@ -153,21 +161,29 @@ export async function saveProfile(profile) {
 
 // ---------- Settings ----------
 
-export const DEFAULT_SETTINGS = { darkMode: false, remindersEnabled: true };
+export const DEFAULT_SETTINGS = { darkMode: true, remindersEnabled: true, notificationTime: '9:00 PM' };
 
 export async function getSettings() {
   const db = await getDb();
   const row = await db.getFirstAsync('SELECT * FROM settings WHERE id = 1');
   if (!row) return DEFAULT_SETTINGS;
-  return { darkMode: !!row.darkMode, remindersEnabled: !!row.remindersEnabled };
+  return {
+    darkMode: !!row.darkMode,
+    remindersEnabled: !!row.remindersEnabled,
+    notificationTime: row.notificationTime || DEFAULT_SETTINGS.notificationTime,
+  };
 }
 
 export async function saveSettings(settings) {
   const db = await getDb();
   await db.runAsync(
-    `INSERT INTO settings (id, darkMode, remindersEnabled) VALUES (1, $darkMode, $remindersEnabled)
-     ON CONFLICT(id) DO UPDATE SET darkMode = excluded.darkMode, remindersEnabled = excluded.remindersEnabled`,
-    { $darkMode: settings.darkMode ? 1 : 0, $remindersEnabled: settings.remindersEnabled ? 1 : 0 }
+    `INSERT INTO settings (id, darkMode, remindersEnabled, notificationTime) VALUES (1, $darkMode, $remindersEnabled, $notificationTime)
+     ON CONFLICT(id) DO UPDATE SET darkMode = excluded.darkMode, remindersEnabled = excluded.remindersEnabled, notificationTime = excluded.notificationTime`,
+    {
+      $darkMode: settings.darkMode ? 1 : 0,
+      $remindersEnabled: settings.remindersEnabled ? 1 : 0,
+      $notificationTime: settings.notificationTime || DEFAULT_SETTINGS.notificationTime,
+    }
   );
   return settings;
 }
