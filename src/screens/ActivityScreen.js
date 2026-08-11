@@ -123,9 +123,9 @@ export default function ActivityScreen() {
   // Short "which sources contributed" hint on the card itself — exact
   // per-type numbers live in the Today's Breakdown card below, so this stays
   // brief enough to never truncate.
-  const caloriesCaption = workoutCaloriesToday > 0 ? `steps + ${workoutsByTypeToday.map((w) => w.type).join(', ')}` : null;
+  const caloriesCaption = workoutCaloriesToday > 0 ? `Steps + ${workoutsByTypeToday.map((w) => w.type).join(', ')}` : null;
   const distanceCaption =
-    workoutDistanceToday > 0 ? `steps + ${workoutsByTypeToday.filter((w) => w.distanceKm > 0).map((w) => w.type).join(', ')}` : null;
+    workoutDistanceToday > 0 ? `Steps + ${workoutsByTypeToday.filter((w) => w.distanceKm > 0).map((w) => w.type).join(', ')}` : null;
 
   // "Recent Workouts" only reads correctly when the range is "This Week" —
   // once the user picks an older period, the list (and its title) need to
@@ -224,14 +224,26 @@ export default function ActivityScreen() {
         </Card>
 
         <View style={styles.grid}>
-          <TouchableOpacity style={styles.statTouchable} onPress={() => setCustomOpen(true)} activeOpacity={0.7}>
-            <StatCard icon="footsteps" dotColor={colors.steps} label="Steps" value={todayCount.toLocaleString()} unit={`/${Math.round(goal / 1000)}k`} caption="Auto-tracked" />
-          </TouchableOpacity>
+          <StatCard
+            icon="footsteps"
+            dotColor={colors.steps}
+            label="Steps"
+            value={todayCount.toLocaleString()}
+            unit={`/${Math.round(goal / 1000)}k`}
+            caption="Auto-tracked"
+            onPress={() => setCustomOpen(true)}
+          />
           <StatCard icon="flame" dotColor={colors.primary} label="Calories" value={calories} unit="kcal" caption={caloriesCaption} />
           <StatCard icon="location" dotColor={colors.water} label="Distance" value={distanceKm} unit="km" caption={distanceCaption} />
-          <TouchableOpacity style={styles.statTouchable} onPress={() => setWorkoutOpen(true)} activeOpacity={0.7}>
-            <StatCard icon="flash" dotColor={colors.sleep} label="Active" value={activeMinutes} unit="min" caption={workoutsByTypeToday.length ? workoutsByTypeToday.map((w) => w.type).join(', ') : null} />
-          </TouchableOpacity>
+          <StatCard
+            icon="flash"
+            dotColor={colors.sleep}
+            label="Active"
+            value={activeMinutes}
+            unit="min"
+            caption={workoutsByTypeToday.length ? workoutsByTypeToday.map((w) => w.type).join(', ') : null}
+            onPress={() => setWorkoutOpen(true)}
+          />
         </View>
 
         {todayTotals.todayWorkouts.length > 0 && (
@@ -283,14 +295,28 @@ export default function ActivityScreen() {
             <Text style={styles.listHeading}>Workouts</Text>
             <Text style={styles.caption}>{range.label}</Text>
           </View>
-          <TouchableOpacity style={styles.logBtn} onPress={() => setWorkoutOpen(true)}>
-            <Ionicons name="add" size={14} color={colors.steps} />
-            <Text style={styles.logBtnText}>Log Workout</Text>
+          <TouchableOpacity
+            style={[styles.logBtn, rangeKey !== 'week' && styles.logBtnDisabled]}
+            onPress={() => setWorkoutOpen(true)}
+            disabled={rangeKey !== 'week'}
+          >
+            <Ionicons name="add" size={14} color={rangeKey !== 'week' ? colors.inkFaint : colors.steps} />
+            <Text style={[styles.logBtnText, rangeKey !== 'week' && styles.logBtnTextDisabled]}>Log Workout</Text>
           </TouchableOpacity>
         </View>
+        {rangeKey !== 'week' && (
+          <View style={styles.rangeNoteRow}>
+            <Ionicons name="information-circle-outline" size={12} color={colors.inkSoft} />
+            <Text style={styles.rangeNoteText}>Entries always save to today's date — switch to This Week to log a new workout.</Text>
+          </View>
+        )}
         {recentWorkouts.length === 0 ? (
           <Card>
-            <Text style={styles.empty}>No workouts logged for {range.label.toLowerCase()} — tap "Log Workout" to add one.</Text>
+            <Text style={styles.empty}>
+              {rangeKey === 'week'
+                ? 'No workouts logged for this week — tap "Log Workout" to add one.'
+                : `No workouts logged for ${range.label.toLowerCase()}.`}
+            </Text>
           </Card>
         ) : (
           recentWorkouts.map((w, i) => (
@@ -526,7 +552,6 @@ const makeStyles = (colors) =>
     heroDesc: { fontSize: 12.5, color: colors.inkSoft, lineHeight: 18 },
 
     grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-    statTouchable: { flexBasis: '48%' },
 
     cardHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
     sectionTitle: { fontSize: 15, fontWeight: '800', color: colors.ink },
@@ -567,6 +592,10 @@ const makeStyles = (colors) =>
       paddingVertical: 6,
     },
     logBtnText: { fontSize: 11.5, fontWeight: '700', color: colors.steps },
+    logBtnDisabled: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+    logBtnTextDisabled: { color: colors.inkFaint },
+    rangeNoteRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: spacing.sm },
+    rangeNoteText: { fontSize: 11, fontWeight: '500', color: colors.inkSoft, flexShrink: 1 },
     empty: { fontSize: 13, color: colors.inkSoft },
     lastCard: { marginBottom: spacing.xs },
     workoutRow: { flexDirection: 'row', alignItems: 'center' },

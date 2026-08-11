@@ -82,9 +82,9 @@ export default function HomeScreen() {
   const distanceKm = Math.round((stepsDistanceToday + workoutDistanceToday) * 10) / 10;
 
   const workoutsByTypeToday = useMemo(() => groupWorkoutsByType(todayTotals.todayWorkouts), [todayTotals.todayWorkouts]);
-  const caloriesCaption = workoutCaloriesToday > 0 ? `steps + ${workoutsByTypeToday.map((w) => w.type).join(', ')}` : null;
+  const caloriesCaption = workoutCaloriesToday > 0 ? `Steps + ${workoutsByTypeToday.map((w) => w.type).join(', ')}` : null;
   const distanceCaption =
-    workoutDistanceToday > 0 ? `steps + ${workoutsByTypeToday.filter((w) => w.distanceKm > 0).map((w) => w.type).join(', ')}` : null;
+    workoutDistanceToday > 0 ? `Steps + ${workoutsByTypeToday.filter((w) => w.distanceKm > 0).map((w) => w.type).join(', ')}` : null;
 
   const sleepHours = todayTotals.sleepHours || 0;
   const sleepStages = hk.sleepStages
