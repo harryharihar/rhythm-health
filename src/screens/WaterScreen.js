@@ -11,6 +11,7 @@ import { useHealth } from '../store/healthStore';
 import { spacing } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
 import { formatShortTime, isSameDay, sumByDay, todayKey } from '../utils/dateUtils';
+import { LABELS } from '../constants/labels';
 
 export default function WaterScreen() {
   const { profile, water, addWater } = useHealth();
@@ -40,10 +41,10 @@ export default function WaterScreen() {
     <View style={styles.flex}>
       <LinearGradient colors={[colors.waterGlow, 'transparent']} style={styles.ambient} pointerEvents="none" />
       <ScrollView style={styles.flex} contentContainerStyle={styles.container}>
-        <ScreenHeader eyebrow="Hydration" accent={colors.water} title="Water" subtitle={`Goal ${goalMl} ml`} />
+        <ScreenHeader eyebrow={LABELS.water.eyebrow} accent={colors.water} title={LABELS.water.title} subtitle={`Goal ${goalMl} ml`} />
 
         <DailyArc
-          label="Today's Intake"
+          label={LABELS.water.todaysIntake}
           icon="💧"
           value={totalMl}
           suffix={`/ ${goalMl} ml`}
@@ -61,15 +62,15 @@ export default function WaterScreen() {
         </View>
 
         <View style={styles.pillRow}>
-          <Pill label="+250ml" color={colors.water} soft={colors.waterSoft} onPress={() => addWater(250)} />
-          <Pill label="+500ml" color={colors.water} soft={colors.waterSoft} onPress={() => addWater(500)} />
-          <Pill label="Custom" color={colors.water} soft={colors.waterSoft} onPress={() => setCustomOpen(true)} />
+          <Pill label={LABELS.water.addQuick250} color={colors.water} soft={colors.waterSoft} onPress={() => addWater(250)} />
+          <Pill label={LABELS.water.addQuick500} color={colors.water} soft={colors.waterSoft} onPress={() => addWater(500)} />
+          <Pill label={LABELS.water.addCustom} color={colors.water} soft={colors.waterSoft} onPress={() => setCustomOpen(true)} />
         </View>
 
         <Card>
-          <Text style={styles.cardTitle}>Logged today</Text>
+          <Text style={styles.cardTitle}>{LABELS.water.loggedToday}</Text>
           {todayLogs.length === 0 ? (
-            <Text style={styles.empty}>Nothing logged yet — add your first glass above.</Text>
+            <Text style={styles.empty}>{LABELS.water.emptyToday}</Text>
           ) : (
             todayLogs.map((log) => (
               <View key={log.id} style={styles.logRow}>
@@ -84,22 +85,22 @@ export default function WaterScreen() {
         </Card>
 
         <Card>
-          <Text style={styles.cardTitle}>Past 7 days</Text>
+          <Text style={styles.cardTitle}>{LABELS.water.past7Days}</Text>
           <WeekBars data={weekData} color={colors.water} trackColor={colors.waterSoft} />
         </Card>
 
-        <QuickAddSheet visible={customOpen} title="Add custom amount" onClose={() => setCustomOpen(false)}>
+        <QuickAddSheet visible={customOpen} title={LABELS.water.customDialogTitle} onClose={() => setCustomOpen(false)}>
           <TextInput
             style={styles.input}
             keyboardType="number-pad"
-            placeholder="Amount in ml"
+            placeholder={LABELS.water.amountPlaceholder}
             placeholderTextColor={colors.inkFaint}
             value={customValue}
             onChangeText={setCustomValue}
             autoFocus
           />
           <TouchableOpacity style={styles.submitBtn} onPress={submitCustom}>
-            <Text style={styles.submitLabel}>Add</Text>
+            <Text style={styles.submitLabel}>{LABELS.water.addSubmit}</Text>
           </TouchableOpacity>
         </QuickAddSheet>
       </ScrollView>

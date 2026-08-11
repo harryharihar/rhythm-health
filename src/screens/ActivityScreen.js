@@ -22,19 +22,20 @@ import {
   WORKOUT_MET,
   WORKOUT_TYPES,
 } from '../utils/healthCalculations';
+import { LABELS } from '../constants/labels';
 
 // Each range computes its own buckets (day/week/month granularity — a full
 // year as 365 daily points would be unreadable) plus how many real days it
 // spans, so the "Avg/day" figure stays accurate regardless of bucket size.
 const RANGE_OPTIONS = [
-  { key: 'week', label: 'This Week', icon: 'today-outline', totalDays: 7, getBuckets: () => dayBuckets(7, 0, 'narrow') },
-  { key: 'lastWeek', label: 'Last Week', icon: 'arrow-undo-outline', totalDays: 7, getBuckets: () => dayBuckets(7, 7, 'narrow') },
-  { key: '2weeks', label: '2 Weeks', icon: 'calendar-outline', totalDays: 14, getBuckets: () => dayBuckets(14, 0, 'narrow') },
-  { key: 'month', label: '1 Month', icon: 'calendar-number-outline', totalDays: 30, getBuckets: () => weekBuckets(4) },
-  { key: '3months', label: '3 Months', icon: 'calendar-clear-outline', totalDays: 91, getBuckets: () => monthBuckets(3) },
-  { key: '6months', label: '6 Months', icon: 'stats-chart-outline', totalDays: 182, getBuckets: () => monthBuckets(6) },
-  { key: '9months', label: '9 Months', icon: 'bar-chart-outline', totalDays: 273, getBuckets: () => monthBuckets(9) },
-  { key: 'year', label: '1 Year', icon: 'trending-up-outline', totalDays: 365, getBuckets: () => monthBuckets(12) },
+  { key: 'week', label: LABELS.activity.rangeThisWeek, icon: 'today-outline', totalDays: 7, getBuckets: () => dayBuckets(7, 0, 'narrow') },
+  { key: 'lastWeek', label: LABELS.activity.rangeLastWeek, icon: 'arrow-undo-outline', totalDays: 7, getBuckets: () => dayBuckets(7, 7, 'narrow') },
+  { key: '2weeks', label: LABELS.activity.range2Weeks, icon: 'calendar-outline', totalDays: 14, getBuckets: () => dayBuckets(14, 0, 'narrow') },
+  { key: 'month', label: LABELS.activity.range1Month, icon: 'calendar-number-outline', totalDays: 30, getBuckets: () => weekBuckets(4) },
+  { key: '3months', label: LABELS.activity.range3Months, icon: 'calendar-clear-outline', totalDays: 91, getBuckets: () => monthBuckets(3) },
+  { key: '6months', label: LABELS.activity.range6Months, icon: 'stats-chart-outline', totalDays: 182, getBuckets: () => monthBuckets(6) },
+  { key: '9months', label: LABELS.activity.range9Months, icon: 'bar-chart-outline', totalDays: 273, getBuckets: () => monthBuckets(9) },
+  { key: 'year', label: LABELS.activity.range1Year, icon: 'trending-up-outline', totalDays: 365, getBuckets: () => monthBuckets(12) },
 ];
 
 // Rough daily target used only to score the "Move" ring once real workouts
@@ -107,7 +108,7 @@ export default function ActivityScreen() {
   const movePct = hasWorkoutsInRange ? Math.max(stepsPct, activePct) : stepsPct;
 
   const moveLabel =
-    movePct >= 85 ? 'Peak Performance' : movePct >= 65 ? 'Active & Focused' : movePct >= 40 ? 'Building Momentum' : 'Just Getting Started';
+    movePct >= 85 ? LABELS.activity.movePeak : movePct >= 65 ? LABELS.activity.moveActive : movePct >= 40 ? LABELS.activity.moveBuilding : LABELS.activity.moveStarting;
 
   const stepsCaloriesToday = estimateCaloriesFromSteps(todayCount);
   const workoutCaloriesToday = todayTotals.workoutCaloriesKcal || 0;
@@ -193,11 +194,11 @@ export default function ActivityScreen() {
       <ScrollView style={styles.flex} contentContainerStyle={styles.container}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.title}>Activity</Text>
-            <Text style={styles.subtitle}>Track your daily momentum</Text>
+            <Text style={styles.title}>{LABELS.activity.title}</Text>
+            <Text style={styles.subtitle}>{LABELS.activity.subtitle}</Text>
           </View>
           <View style={styles.liveClock}>
-            <Text style={styles.liveClockLabel}>Today</Text>
+            <Text style={styles.liveClockLabel}>{LABELS.activity.today}</Text>
             <Text style={styles.liveClockTime}>{nowTimeLabel}</Text>
             <Text style={styles.liveClockDate}>{nowDateLabel}</Text>
           </View>
@@ -211,14 +212,18 @@ export default function ActivityScreen() {
             color={colors.steps}
             trackColor={colors.line}
             centerValue={`${movePct}%`}
-            centerLabel="Move"
+            centerLabel={LABELS.activity.move}
           />
           <View style={styles.heroText}>
             <Text style={styles.heroTitle}>{moveLabel}</Text>
             <Text style={styles.heroDesc}>
               {hasWorkoutsInRange
-                ? `You've averaged ${avgPerDay.toLocaleString()} steps and ${avgActiveMinPerDay} active min/day over ${range.label.toLowerCase()} — ${movePct}% of your movement goal.`
-                : `You have achieved ${movePct}% of your movement goal, averaged over ${range.label.toLowerCase()}. Log a workout below to boost today's active minutes.`}
+                ? LABELS.activity.heroDescWithWorkouts
+                    .replace('{steps}', avgPerDay.toLocaleString())
+                    .replace('{activeMin}', avgActiveMinPerDay)
+                    .replace('{range}', range.label.toLowerCase())
+                    .replace('{pct}', movePct)
+                : LABELS.activity.heroDescStepsOnly.replace('{pct}', movePct).replace('{range}', range.label.toLowerCase())}
             </Text>
           </View>
         </Card>
@@ -227,18 +232,18 @@ export default function ActivityScreen() {
           <StatCard
             icon="footsteps"
             dotColor={colors.steps}
-            label="Steps"
+            label={LABELS.home.steps}
             value={todayCount.toLocaleString()}
             unit={`/${Math.round(goal / 1000)}k`}
-            caption="Auto-tracked"
+            caption={LABELS.home.autoTracked}
             onPress={() => setCustomOpen(true)}
           />
-          <StatCard icon="flame" dotColor={colors.primary} label="Calories" value={calories} unit="kcal" caption={caloriesCaption} />
-          <StatCard icon="location" dotColor={colors.water} label="Distance" value={distanceKm} unit="km" caption={distanceCaption} />
+          <StatCard icon="flame" dotColor={colors.primary} label={LABELS.home.calories} value={calories} unit="kcal" caption={caloriesCaption} />
+          <StatCard icon="location" dotColor={colors.water} label={LABELS.home.distance} value={distanceKm} unit="km" caption={distanceCaption} />
           <StatCard
             icon="flash"
             dotColor={colors.sleep}
-            label="Active"
+            label={LABELS.home.active}
             value={activeMinutes}
             unit="min"
             caption={workoutsByTypeToday.length ? workoutsByTypeToday.map((w) => w.type).join(', ') : null}
@@ -248,13 +253,13 @@ export default function ActivityScreen() {
 
         {todayTotals.todayWorkouts.length > 0 && (
           <Card>
-            <Text style={styles.breakdownTitle}>Today's Breakdown</Text>
+            <Text style={styles.breakdownTitle}>{LABELS.home.todaysBreakdown}</Text>
             <View style={styles.breakdownRow}>
               <View style={[styles.breakdownIcon, { backgroundColor: colors.stepsSoft }]}>
                 <Ionicons name="footsteps-outline" size={16} color={colors.steps} />
               </View>
-              <Text style={styles.breakdownLabel}>Steps</Text>
-              <Text style={styles.breakdownAutoTag}>Auto</Text>
+              <Text style={styles.breakdownLabel}>{LABELS.home.steps}</Text>
+              <Text style={styles.breakdownAutoTag}>{LABELS.home.auto}</Text>
               <Text style={styles.breakdownValue}>
                 {todayCount.toLocaleString()} steps · {stepsDistanceToday} km · {stepsCaloriesToday} kcal
               </Text>
@@ -275,13 +280,13 @@ export default function ActivityScreen() {
 
         <Card>
           <View style={styles.cardHeaderRow}>
-            <Text style={styles.sectionTitle}>Steps Trend</Text>
+            <Text style={styles.sectionTitle}>{LABELS.activity.stepsTrend}</Text>
             <TouchableOpacity style={styles.filterPill} onPress={() => setRangeOpen(true)}>
               <Text style={styles.filterPillText}>{range.label}</Text>
               <Ionicons name="chevron-down" size={13} color={colors.inkSoft} />
             </TouchableOpacity>
           </View>
-          <Text style={styles.caption}>Avg: {avgPerDay.toLocaleString()}/day</Text>
+          <Text style={styles.caption}>{LABELS.activity.avgPerDay.replace('{avg}', avgPerDay.toLocaleString())}</Text>
           <Sparkline data={chartData.map((d) => d.value)} color={colors.steps} width={280} height={90} strokeWidth={2.5} dots />
           <View style={styles.axisRow}>
             {chartData.map((d) => (
@@ -292,7 +297,7 @@ export default function ActivityScreen() {
 
         <View style={styles.cardHeaderRow}>
           <View>
-            <Text style={styles.listHeading}>Workouts</Text>
+            <Text style={styles.listHeading}>{LABELS.activity.workouts}</Text>
             <Text style={styles.caption}>{range.label}</Text>
           </View>
           <TouchableOpacity
@@ -301,21 +306,21 @@ export default function ActivityScreen() {
             disabled={rangeKey !== 'week'}
           >
             <Ionicons name="add" size={14} color={rangeKey !== 'week' ? colors.inkFaint : colors.steps} />
-            <Text style={[styles.logBtnText, rangeKey !== 'week' && styles.logBtnTextDisabled]}>Log Workout</Text>
+            <Text style={[styles.logBtnText, rangeKey !== 'week' && styles.logBtnTextDisabled]}>{LABELS.activity.logWorkout}</Text>
           </TouchableOpacity>
         </View>
         {rangeKey !== 'week' && (
           <View style={styles.rangeNoteRow}>
             <Ionicons name="information-circle-outline" size={12} color={colors.inkSoft} />
-            <Text style={styles.rangeNoteText}>Entries always save to today's date — switch to This Week to log a new workout.</Text>
+            <Text style={styles.rangeNoteText}>{LABELS.activity.rangeNote}</Text>
           </View>
         )}
         {recentWorkouts.length === 0 ? (
           <Card>
             <Text style={styles.empty}>
               {rangeKey === 'week'
-                ? 'No workouts logged for this week — tap "Log Workout" to add one.'
-                : `No workouts logged for ${range.label.toLowerCase()}.`}
+                ? LABELS.activity.emptyWorkoutsWeek
+                : LABELS.activity.emptyWorkoutsRange.replace('{range}', range.label.toLowerCase())}
             </Text>
           </Card>
         ) : (
@@ -336,34 +341,34 @@ export default function ActivityScreen() {
         )}
       </ScrollView>
 
-      <QuickAddSheet visible={customOpen} title="Log steps" onClose={() => setCustomOpen(false)}>
+      <QuickAddSheet visible={customOpen} title={LABELS.activity.logStepsTitle} onClose={() => setCustomOpen(false)}>
         <View style={styles.sheetInfoRow}>
           <Ionicons name="information-circle-outline" size={14} color={colors.inkSoft} />
-          <Text style={styles.sheetInfoText}>Entries are recorded for today's date only.</Text>
+          <Text style={styles.sheetInfoText}>{LABELS.activity.entriesRecordedToday}</Text>
         </View>
         <TextInput
           style={styles.input}
           keyboardType="number-pad"
-          placeholder="Number of steps"
+          placeholder={LABELS.activity.stepsPlaceholder}
           placeholderTextColor={colors.inkFaint}
           value={customValue}
           onChangeText={setCustomValue}
           autoFocus
         />
         <TouchableOpacity style={styles.submitBtn} onPress={submitCustom}>
-          <Text style={styles.submitLabel}>Add</Text>
+          <Text style={styles.submitLabel}>{LABELS.activity.add}</Text>
         </TouchableOpacity>
       </QuickAddSheet>
 
       <QuickAddSheet
         visible={workoutOpen}
-        title={sheetView === 'form' ? 'Log workout' : sheetView === 'types' ? 'Workout Types' : 'How calories are estimated'}
+        title={sheetView === 'form' ? LABELS.activity.logWorkoutTitle : sheetView === 'types' ? LABELS.activity.workoutTypesTitle : LABELS.activity.calorieEstimateTitle}
         onClose={() => { resetWorkoutForm(); setWorkoutOpen(false); }}
       >
         {sheetView !== 'form' && (
           <TouchableOpacity style={styles.backRow} onPress={() => setSheetView('form')} hitSlop={8}>
             <Ionicons name="arrow-back" size={16} color={colors.steps} />
-            <Text style={styles.backLabel}>Back</Text>
+            <Text style={styles.backLabel}>{LABELS.activity.back}</Text>
           </TouchableOpacity>
         )}
 
@@ -371,11 +376,11 @@ export default function ActivityScreen() {
           <>
             <View style={styles.sheetInfoRow}>
               <Ionicons name="information-circle-outline" size={14} color={colors.inkSoft} />
-              <Text style={styles.sheetInfoText}>Entries are recorded for today's date only.</Text>
+              <Text style={styles.sheetInfoText}>{LABELS.activity.entriesRecordedToday}</Text>
             </View>
 
             <View style={styles.fieldLabelRow}>
-              <Text style={[styles.fieldLabel, styles.fieldLabelNoMargin]}>Type</Text>
+              <Text style={[styles.fieldLabel, styles.fieldLabelNoMargin]}>{LABELS.activity.type}</Text>
               <TouchableOpacity
                 onPress={() => {
                   Keyboard.dismiss();
@@ -404,7 +409,7 @@ export default function ActivityScreen() {
               })}
             </View>
 
-            <Text style={styles.fieldLabel}>Duration</Text>
+            <Text style={styles.fieldLabel}>{LABELS.activity.duration}</Text>
             <View style={styles.inputRow}>
               <View style={styles.inputIconWrap}>
                 <Ionicons name="time-outline" size={16} color={colors.steps} />
@@ -412,13 +417,13 @@ export default function ActivityScreen() {
               <TextInput
                 style={styles.inputField}
                 keyboardType="number-pad"
-                placeholder="e.g. 30"
+                placeholder={LABELS.activity.durationPlaceholder}
                 placeholderTextColor={colors.inkFaint}
                 value={durationInput}
                 onChangeText={setDurationInput}
                 autoFocus
               />
-              <Text style={styles.inputSuffix}>min</Text>
+              <Text style={styles.inputSuffix}>{LABELS.activity.minSuffix}</Text>
             </View>
 
             <View style={styles.calorieCard}>
@@ -427,7 +432,7 @@ export default function ActivityScreen() {
               </View>
               <View style={styles.calorieTextWrap}>
                 <Text style={styles.calorieValue}>{workoutDurationMin > 0 ? estWorkoutCalories : '—'} kcal</Text>
-                <Text style={styles.calorieCaption}>Auto-estimated from type, duration & your weight</Text>
+                <Text style={styles.calorieCaption}>{LABELS.activity.autoEstimatedCaption}</Text>
               </View>
               <TouchableOpacity
                 onPress={() => {
@@ -440,7 +445,7 @@ export default function ActivityScreen() {
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.fieldLabel}>Distance (optional)</Text>
+            <Text style={styles.fieldLabel}>{LABELS.activity.distanceOptional}</Text>
             <View style={styles.inputRow}>
               <View style={styles.inputIconWrap}>
                 <Ionicons name="location-outline" size={16} color={colors.steps} />
@@ -448,16 +453,16 @@ export default function ActivityScreen() {
               <TextInput
                 style={styles.inputField}
                 keyboardType="decimal-pad"
-                placeholder="e.g. 5.2"
+                placeholder={LABELS.activity.distancePlaceholder}
                 placeholderTextColor={colors.inkFaint}
                 value={distanceInput}
                 onChangeText={setDistanceInput}
               />
-              <Text style={styles.inputSuffix}>km</Text>
+              <Text style={styles.inputSuffix}>{LABELS.activity.kmSuffix}</Text>
             </View>
 
             <TouchableOpacity style={styles.submitBtn} onPress={submitWorkout}>
-              <Text style={styles.submitLabel}>Save</Text>
+              <Text style={styles.submitLabel}>{LABELS.activity.save}</Text>
             </TouchableOpacity>
           </>
         )}
@@ -480,8 +485,10 @@ export default function ActivityScreen() {
             <View style={styles.sheetInfoRow}>
               <Ionicons name="information-circle-outline" size={14} color={colors.inkSoft} />
               <Text style={styles.sheetInfoText}>
-                Formula: MET × 3.5 × weight (kg) ÷ 200 × minutes. MET is a standard measure of exercise intensity — higher means more calories burned
-                per minute. {todayTotals.latestWeight ? `Using your last logged weight (${Math.round(todayTotals.latestWeight)} kg).` : 'Using a default of 70 kg — log your weight on Profile for a more accurate number.'}
+                {LABELS.activity.calorieFormulaIntro}{' '}
+                {todayTotals.latestWeight
+                  ? LABELS.activity.calorieFormulaWithWeight.replace('{weight}', Math.round(todayTotals.latestWeight))
+                  : LABELS.activity.calorieFormulaDefaultWeight}
               </Text>
             </View>
             {calorieChartRows.map((row) => (
@@ -497,7 +504,7 @@ export default function ActivityScreen() {
                   <View style={[styles.metBarFill, { width: `${(row.met / maxMet) * 100}%` }]} />
                 </View>
                 <Text style={styles.metSubValue}>
-                  MET {row.met}{row.perKm ? ` · ~${row.perKm} kcal/km at a typical pace` : ''}
+                  MET {row.met}{row.perKm ? ` · ${LABELS.activity.perKmAtPace.replace('{perKm}', row.perKm)}` : ''}
                 </Text>
               </View>
             ))}
@@ -507,14 +514,14 @@ export default function ActivityScreen() {
 
       <QuickAddSheet
         visible={rangeOpen}
-        title="Time Period"
+        title={LABELS.activity.timePeriodTitle}
         accentColor={colors.steps}
         options={RANGE_OPTIONS.map((r) => ({ label: r.label, icon: r.icon, active: r.key === rangeKey, onPress: () => setRangeKey(r.key) }))}
         onClose={() => setRangeOpen(false)}
       >
         <View style={styles.sheetInfoRow}>
           <Ionicons name="information-circle-outline" size={14} color={colors.inkSoft} />
-          <Text style={styles.sheetInfoText}>Sets how far back the Move score and Steps Trend chart above look — from this week up to a full year.</Text>
+          <Text style={styles.sheetInfoText}>{LABELS.activity.timePeriodInfo}</Text>
         </View>
       </QuickAddSheet>
     </View>

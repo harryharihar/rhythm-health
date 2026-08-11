@@ -12,26 +12,27 @@ import { useThemeColors } from '../theme/useTheme';
 import { dayBuckets, formatFriendlyDate, formatShortTime, monthBuckets, sumByBuckets, weekBuckets } from '../utils/dateUtils';
 import { estimateCaloriesFromSteps, groupWorkoutsByType } from '../utils/healthCalculations';
 import { FOOD_CATEGORIES, FOOD_DATABASE } from '../data/foodDatabase';
+import { LABELS } from '../constants/labels';
 
 const MEAL_TYPES = [
-  { label: 'Breakfast', icon: 'cafe-outline' },
-  { label: 'Lunch', icon: 'restaurant-outline' },
-  { label: 'Dinner', icon: 'pizza-outline' },
-  { label: 'Snack', icon: 'flask-outline' },
+  { label: LABELS.nutrition.mealBreakfast, icon: 'cafe-outline' },
+  { label: LABELS.nutrition.mealLunch, icon: 'restaurant-outline' },
+  { label: LABELS.nutrition.mealDinner, icon: 'pizza-outline' },
+  { label: LABELS.nutrition.mealSnack, icon: 'flask-outline' },
 ];
 const iconForMeal = (type) => MEAL_TYPES.find((t) => t.label === type)?.icon || 'restaurant-outline';
 
 // Same period options as the Activity screen's Time Period picker, for a
 // consistent way to look back at past nutrition data.
 const RANGE_OPTIONS = [
-  { key: 'week', label: 'This Week', icon: 'today-outline', totalDays: 7, getBuckets: () => dayBuckets(7, 0, 'narrow') },
-  { key: 'lastWeek', label: 'Last Week', icon: 'arrow-undo-outline', totalDays: 7, getBuckets: () => dayBuckets(7, 7, 'narrow') },
-  { key: '2weeks', label: '2 Weeks', icon: 'calendar-outline', totalDays: 14, getBuckets: () => dayBuckets(14, 0, 'narrow') },
-  { key: 'month', label: '1 Month', icon: 'calendar-number-outline', totalDays: 30, getBuckets: () => weekBuckets(4) },
-  { key: '3months', label: '3 Months', icon: 'calendar-clear-outline', totalDays: 91, getBuckets: () => monthBuckets(3) },
-  { key: '6months', label: '6 Months', icon: 'stats-chart-outline', totalDays: 182, getBuckets: () => monthBuckets(6) },
-  { key: '9months', label: '9 Months', icon: 'bar-chart-outline', totalDays: 273, getBuckets: () => monthBuckets(9) },
-  { key: 'year', label: '1 Year', icon: 'trending-up-outline', totalDays: 365, getBuckets: () => monthBuckets(12) },
+  { key: 'week', label: LABELS.activity.rangeThisWeek, icon: 'today-outline', totalDays: 7, getBuckets: () => dayBuckets(7, 0, 'narrow') },
+  { key: 'lastWeek', label: LABELS.activity.rangeLastWeek, icon: 'arrow-undo-outline', totalDays: 7, getBuckets: () => dayBuckets(7, 7, 'narrow') },
+  { key: '2weeks', label: LABELS.activity.range2Weeks, icon: 'calendar-outline', totalDays: 14, getBuckets: () => dayBuckets(14, 0, 'narrow') },
+  { key: 'month', label: LABELS.activity.range1Month, icon: 'calendar-number-outline', totalDays: 30, getBuckets: () => weekBuckets(4) },
+  { key: '3months', label: LABELS.activity.range3Months, icon: 'calendar-clear-outline', totalDays: 91, getBuckets: () => monthBuckets(3) },
+  { key: '6months', label: LABELS.activity.range6Months, icon: 'stats-chart-outline', totalDays: 182, getBuckets: () => monthBuckets(6) },
+  { key: '9months', label: LABELS.activity.range9Months, icon: 'bar-chart-outline', totalDays: 273, getBuckets: () => monthBuckets(9) },
+  { key: 'year', label: LABELS.activity.range1Year, icon: 'trending-up-outline', totalDays: 365, getBuckets: () => monthBuckets(12) },
 ];
 
 // Commonly cited minimum daily intake for adults — used only to flag a
@@ -141,7 +142,9 @@ export default function NutritionScreen() {
   const workoutCaloriesToday = todayTotals.workoutCaloriesKcal || 0;
   const caloriesBurned = stepsCaloriesToday + workoutCaloriesToday;
   const workoutsByTypeToday = useMemo(() => groupWorkoutsByType(todayTotals.todayWorkouts), [todayTotals.todayWorkouts]);
-  const burnedCaption = workoutCaloriesToday > 0 ? `Steps + ${workoutsByTypeToday.map((w) => w.type).join(', ')}` : 'Steps only';
+  const burnedCaption = workoutCaloriesToday > 0
+    ? LABELS.nutrition.burnedCaptionWithWorkouts.replace('{types}', workoutsByTypeToday.map((w) => w.type).join(', '))
+    : LABELS.nutrition.burnedCaptionStepsOnly;
 
   const caloriesRemaining = calorieTarget - caloriesConsumed;
   const netIntake = caloriesConsumed - caloriesBurned;
@@ -153,18 +156,18 @@ export default function NutritionScreen() {
   const intakeAdvisory = useMemo(() => {
     if (caloriesBurned < 50) return null;
     if (caloriesConsumed === 0) {
-      return { tone: 'warning', text: `You've burned ${caloriesBurned} kcal today but haven't logged any meals yet — make sure to refuel.` };
+      return { tone: 'warning', text: LABELS.nutrition.advisoryNoMealsLogged.replace('{burned}', caloriesBurned) };
     }
     if (caloriesConsumed < LOW_INTAKE_FLOOR_KCAL && netIntake < -400) {
-      return { tone: 'warning', text: `Intake looks low for today's activity (${caloriesConsumed} kcal eaten) — consider eating a bit more to recover well.` };
+      return { tone: 'warning', text: LABELS.nutrition.advisoryLowIntake.replace('{consumed}', caloriesConsumed) };
     }
     if (netIntake < -200) {
-      return { tone: 'positive', text: 'Healthy calorie deficit today, with meals logged to back it up.' };
+      return { tone: 'positive', text: LABELS.nutrition.advisoryHealthyDeficit };
     }
     if (netIntake > 200) {
-      return { tone: 'neutral', text: 'Calorie surplus today — fine if that matches your goal.' };
+      return { tone: 'neutral', text: LABELS.nutrition.advisorySurplus };
     }
-    return { tone: 'neutral', text: 'Intake is roughly balanced with what you burned today.' };
+    return { tone: 'neutral', text: LABELS.nutrition.advisoryBalanced };
   }, [caloriesBurned, caloriesConsumed, netIntake]);
   const advisoryColor =
     intakeAdvisory?.tone === 'warning' ? colors.danger : intakeAdvisory?.tone === 'positive' ? colors.primary : colors.inkSoft;
@@ -187,9 +190,9 @@ export default function NutritionScreen() {
 
   const macros = useMemo(() => {
     const rows = [
-      { key: 'protein', label: 'Protein', grams: Math.round(todayTotals.proteinG), targetGrams: goals.proteinGoalG || 120 },
-      { key: 'carbs', label: 'Carbohydrates', grams: Math.round(todayTotals.carbsG), targetGrams: goals.carbsGoalG || 220 },
-      { key: 'fats', label: 'Fats', grams: Math.round(todayTotals.fatsG), targetGrams: goals.fatsGoalG || 70 },
+      { key: 'protein', label: LABELS.nutrition.protein, grams: Math.round(todayTotals.proteinG), targetGrams: goals.proteinGoalG || 120 },
+      { key: 'carbs', label: LABELS.nutrition.carbohydrates, grams: Math.round(todayTotals.carbsG), targetGrams: goals.carbsGoalG || 220 },
+      { key: 'fats', label: LABELS.nutrition.fats, grams: Math.round(todayTotals.fatsG), targetGrams: goals.fatsGoalG || 70 },
     ];
     return rows.map((r) => ({ ...r, pct: r.targetGrams ? Math.round((r.grams / r.targetGrams) * 100) : 0 }));
   }, [todayTotals, goals]);
@@ -253,18 +256,18 @@ export default function NutritionScreen() {
       <ScrollView style={styles.flex} contentContainerStyle={styles.container}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.title}>Nutrition</Text>
+            <Text style={styles.title}>{LABELS.nutrition.title}</Text>
             <Text style={styles.subtitle}>{formatFriendlyDate()}</Text>
           </View>
           <TouchableOpacity style={styles.targetPill} onPress={openTargets}>
-            <Text style={styles.targetPillText}>Calorie Target</Text>
+            <Text style={styles.targetPillText}>{LABELS.nutrition.calorieTarget}</Text>
           </TouchableOpacity>
         </View>
 
         <Card>
           <View style={styles.heroHeadRow}>
             <View style={styles.todayTag}>
-              <Text style={styles.todayTagText}>TODAY</Text>
+              <Text style={styles.todayTagText}>{LABELS.nutrition.today}</Text>
             </View>
             <TouchableOpacity onPress={() => setInfoOpen(true)} hitSlop={8}>
               <Ionicons name="information-circle-outline" size={16} color={colors.inkSoft} />
@@ -277,23 +280,23 @@ export default function NutritionScreen() {
               strokeWidth={10}
               color={colors.steps}
               trackColor={colors.line}
-              centerTop="Remaining"
+              centerTop={LABELS.nutrition.remaining}
               centerValue={caloriesRemaining}
-              centerLabel="kcal"
+              centerLabel={LABELS.nutrition.kcal}
             />
             <View style={styles.heroText}>
-              <Text style={styles.caption}>Consumed</Text>
+              <Text style={styles.caption}>{LABELS.nutrition.consumed}</Text>
               <Text style={styles.heroValue}>
                 {caloriesConsumed.toLocaleString()} <Text style={styles.heroValueUnit}>/ {calorieTarget.toLocaleString()} kcal</Text>
               </Text>
               <View style={styles.heroSubRow}>
                 <View>
-                  <Text style={styles.caption}>Burned</Text>
+                  <Text style={styles.caption}>{LABELS.nutrition.burned}</Text>
                   <Text style={[styles.heroSubValue, { color: colors.primary }]}>+ {caloriesBurned} kcal</Text>
                   <Text style={styles.sourceCaption} numberOfLines={1}>{burnedCaption}</Text>
                 </View>
                 <View>
-                  <Text style={styles.caption}>Net Intake</Text>
+                  <Text style={styles.caption}>{LABELS.nutrition.netIntake}</Text>
                   <Text style={[styles.heroSubValue, { color: colors.water }]}>{netIntake.toLocaleString()} kcal</Text>
                 </View>
               </View>
@@ -313,14 +316,17 @@ export default function NutritionScreen() {
 
         <Card>
           <View style={styles.cardHeaderRow}>
-            <Text style={styles.sectionTitleRow}>Calorie Trend</Text>
+            <Text style={styles.sectionTitleRow}>{LABELS.nutrition.calorieTrend}</Text>
             <TouchableOpacity style={styles.filterPill} onPress={() => setRangeOpen(true)}>
               <Text style={styles.filterPillText}>{range.label}</Text>
               <Ionicons name="chevron-down" size={13} color={colors.inkSoft} />
             </TouchableOpacity>
           </View>
           <Text style={styles.caption}>
-            Avg net: <Text style={{ fontWeight: '800', color: avgNetPerDay < 0 ? colors.primary : colors.water }}>{avgNetPerDay > 0 ? '+' : ''}{avgNetPerDay.toLocaleString()} kcal/day</Text>
+            {LABELS.nutrition.avgNet}
+            <Text style={{ fontWeight: '800', color: avgNetPerDay < 0 ? colors.primary : colors.water }}>
+              {LABELS.nutrition.kcalPerDay.replace('{sign}', avgNetPerDay > 0 ? '+' : '').replace('{value}', avgNetPerDay.toLocaleString())}
+            </Text>
           </Text>
           <Sparkline data={netByBucket.map((d) => d.value)} color={colors.steps} refValue={0} refColor={colors.inkFaint} width={280} height={90} strokeWidth={2.5} dots />
           <View style={styles.axisRow}>
@@ -331,7 +337,7 @@ export default function NutritionScreen() {
         </Card>
 
         <Card>
-          <Text style={styles.sectionTitle}>Daily Macrostats</Text>
+          <Text style={styles.sectionTitle}>{LABELS.nutrition.dailyMacrostats}</Text>
           {macros.map((m) => (
             <View key={m.key} style={styles.macroRow}>
               <View style={styles.macroLabelRow}>
@@ -348,25 +354,25 @@ export default function NutritionScreen() {
         </Card>
 
         <View style={styles.cardHeaderRow}>
-          <Text style={styles.listHeading}>Today's Meals</Text>
+          <Text style={styles.listHeading}>{LABELS.nutrition.todaysMeals}</Text>
           <TouchableOpacity
             style={[styles.logBtn, rangeKey !== 'week' && styles.logBtnDisabled]}
             onPress={() => setMealOpen(true)}
             disabled={rangeKey !== 'week'}
           >
             <Ionicons name="add" size={14} color={rangeKey !== 'week' ? colors.inkFaint : colors.steps} />
-            <Text style={[styles.logBtnText, rangeKey !== 'week' && styles.logBtnTextDisabled]}>Log Meal</Text>
+            <Text style={[styles.logBtnText, rangeKey !== 'week' && styles.logBtnTextDisabled]}>{LABELS.nutrition.logMeal}</Text>
           </TouchableOpacity>
         </View>
         {rangeKey !== 'week' && (
           <View style={styles.rangeNoteRow}>
             <Ionicons name="information-circle-outline" size={12} color={colors.inkSoft} />
-            <Text style={styles.rangeNoteText}>Entries always save to today's date — switch Calorie Trend back to This Week to log a new meal.</Text>
+            <Text style={styles.rangeNoteText}>{LABELS.nutrition.rangeNoteMeal}</Text>
           </View>
         )}
         {todayTotals.todayMeals.length === 0 ? (
           <Card>
-            <Text style={styles.empty}>No meals logged yet — tap "Log Meal" to add your first one.</Text>
+            <Text style={styles.empty}>{LABELS.nutrition.emptyMeals}</Text>
           </Card>
         ) : (
           todayTotals.todayMeals.map((meal) => (
@@ -395,7 +401,7 @@ export default function NutritionScreen() {
               <Text style={styles.mealTitle}>
                 {waterLitres}L <Text style={styles.caption}>/ {waterGoalLitres}L</Text>
               </Text>
-              <Text style={styles.mealSubtitle}>Water Intake</Text>
+              <Text style={styles.mealSubtitle}>{LABELS.nutrition.waterIntake}</Text>
             </View>
             <TouchableOpacity
               style={[styles.addCircle, { backgroundColor: colors.steps }, rangeKey !== 'week' && styles.addCircleDisabled]}
@@ -408,7 +414,7 @@ export default function NutritionScreen() {
           {rangeKey !== 'week' && (
             <View style={[styles.rangeNoteRow, { marginTop: spacing.sm, marginBottom: 0 }]}>
               <Ionicons name="information-circle-outline" size={12} color={colors.inkSoft} />
-              <Text style={styles.rangeNoteText}>Water logs always save to today — switch Calorie Trend back to This Week to add.</Text>
+              <Text style={styles.rangeNoteText}>{LABELS.nutrition.rangeNoteWater}</Text>
             </View>
           )}
         </Card>
@@ -416,13 +422,13 @@ export default function NutritionScreen() {
 
       <QuickAddSheet
         visible={mealOpen}
-        title={mealSheetView === 'form' ? 'Log meal' : 'Search Food List'}
+        title={mealSheetView === 'form' ? LABELS.nutrition.logMealTitle : LABELS.nutrition.searchFoodListTitle}
         onClose={() => { resetMealForm(); setMealOpen(false); }}
       >
         {mealSheetView === 'foodPicker' && (
           <TouchableOpacity style={styles.backRow} onPress={() => setMealSheetView('form')} hitSlop={8}>
             <Ionicons name="arrow-back" size={16} color={colors.steps} />
-            <Text style={styles.backLabel}>Back</Text>
+            <Text style={styles.backLabel}>{LABELS.activity.back}</Text>
           </TouchableOpacity>
         )}
 
@@ -430,10 +436,10 @@ export default function NutritionScreen() {
           <>
             <View style={styles.sheetInfoRow}>
               <Ionicons name="information-circle-outline" size={14} color={colors.inkSoft} />
-              <Text style={styles.sheetInfoText}>Entries are recorded for today's date only.</Text>
+              <Text style={styles.sheetInfoText}>{LABELS.activity.entriesRecordedToday}</Text>
             </View>
 
-            <Text style={styles.fieldLabel}>Meal Type</Text>
+            <Text style={styles.fieldLabel}>{LABELS.nutrition.mealType}</Text>
             <View style={styles.typePicker}>
               {MEAL_TYPES.map((t) => (
                 <TouchableOpacity
@@ -447,20 +453,20 @@ export default function NutritionScreen() {
               ))}
             </View>
 
-            <Text style={styles.fieldLabel}>What did you eat?</Text>
+            <Text style={styles.fieldLabel}>{LABELS.nutrition.whatDidYouEat}</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Grilled chicken salad"
+              placeholder={LABELS.nutrition.mealNamePlaceholder}
               placeholderTextColor={colors.inkFaint}
               value={nameInput}
               onChangeText={setNameInput}
             />
             <TouchableOpacity style={styles.foodDbBtn} onPress={() => setMealSheetView('foodPicker')}>
               <Ionicons name="search-outline" size={14} color={colors.steps} />
-              <Text style={styles.foodDbBtnText}>Not sure of the calories? Search the food list</Text>
+              <Text style={styles.foodDbBtnText}>{LABELS.nutrition.searchFoodListPrompt}</Text>
             </TouchableOpacity>
 
-            <Text style={styles.fieldLabel}>Calories</Text>
+            <Text style={styles.fieldLabel}>{LABELS.nutrition.calories}</Text>
             <View style={styles.inputRow}>
               <View style={styles.inputIconWrap}>
                 <Ionicons name="flame-outline" size={16} color={colors.steps} />
@@ -468,23 +474,23 @@ export default function NutritionScreen() {
               <TextInput
                 style={styles.inputField}
                 keyboardType="number-pad"
-                placeholder="e.g. 450"
+                placeholder={LABELS.nutrition.caloriesPlaceholder}
                 placeholderTextColor={colors.inkFaint}
                 value={caloriesInput}
                 onChangeText={setCaloriesInput}
               />
-              <Text style={styles.inputSuffix}>kcal</Text>
+              <Text style={styles.inputSuffix}>{LABELS.nutrition.kcal}</Text>
             </View>
 
-            <Text style={styles.fieldLabel}>Macros (optional)</Text>
+            <Text style={styles.fieldLabel}>{LABELS.nutrition.macrosOptional}</Text>
             <View style={styles.macroFieldRow}>
-              <MacroField styles={styles} colors={colors} icon="barbell-outline" iconColor={macroColors.protein} label="Protein" value={proteinInput} onChangeText={setProteinInput} />
-              <MacroField styles={styles} colors={colors} icon="leaf-outline" iconColor={macroColors.carbs} label="Carbs" value={carbsInput} onChangeText={setCarbsInput} />
-              <MacroField styles={styles} colors={colors} icon="water-outline" iconColor={macroColors.fats} label="Fats" value={fatsInput} onChangeText={setFatsInput} />
+              <MacroField styles={styles} colors={colors} icon="barbell-outline" iconColor={macroColors.protein} label={LABELS.nutrition.protein} value={proteinInput} onChangeText={setProteinInput} />
+              <MacroField styles={styles} colors={colors} icon="leaf-outline" iconColor={macroColors.carbs} label={LABELS.nutrition.carbs} value={carbsInput} onChangeText={setCarbsInput} />
+              <MacroField styles={styles} colors={colors} icon="water-outline" iconColor={macroColors.fats} label={LABELS.nutrition.fats} value={fatsInput} onChangeText={setFatsInput} />
             </View>
 
             <TouchableOpacity style={styles.submitBtn} onPress={submitMeal}>
-              <Text style={styles.submitLabel}>Save</Text>
+              <Text style={styles.submitLabel}>{LABELS.common.save}</Text>
             </TouchableOpacity>
           </>
         )}
@@ -493,7 +499,7 @@ export default function NutritionScreen() {
           <>
             <View style={styles.sheetInfoRow}>
               <Ionicons name="information-circle-outline" size={14} color={colors.inkSoft} />
-              <Text style={styles.sheetInfoText}>Typical values per standard serving — select everything in this meal, then add it as one entry.</Text>
+              <Text style={styles.sheetInfoText}>{LABELS.nutrition.foodPickerInfo}</Text>
             </View>
             <View style={styles.inputRow}>
               <View style={styles.inputIconWrap}>
@@ -501,7 +507,7 @@ export default function NutritionScreen() {
               </View>
               <TextInput
                 style={styles.inputField}
-                placeholder="Search foods, e.g. dosa, chicken, rice"
+                placeholder={LABELS.nutrition.foodSearchPlaceholder}
                 placeholderTextColor={colors.inkFaint}
                 value={foodSearch}
                 onChangeText={setFoodSearch}
@@ -513,7 +519,7 @@ export default function NutritionScreen() {
                 style={[styles.categoryChip, !foodCategory && styles.categoryChipActive]}
                 onPress={() => setFoodCategory(null)}
               >
-                <Text style={[styles.categoryChipText, !foodCategory && styles.categoryChipTextActive]}>All</Text>
+                <Text style={[styles.categoryChipText, !foodCategory && styles.categoryChipTextActive]}>{LABELS.nutrition.all}</Text>
               </TouchableOpacity>
               {FOOD_CATEGORIES.map((cat) => (
                 <TouchableOpacity
@@ -527,7 +533,7 @@ export default function NutritionScreen() {
             </View>
 
             {filteredFoods.length === 0 ? (
-              <Text style={styles.empty}>No foods match — try a different search or add it manually.</Text>
+              <Text style={styles.empty}>{LABELS.nutrition.emptyFoods}</Text>
             ) : (
               filteredFoods.map((food) => {
                 const selected = selectedFoods.some((f) => f.name === food.name);
@@ -559,20 +565,25 @@ export default function NutritionScreen() {
               disabled={selectedFoods.length === 0}
             >
               <Text style={styles.submitLabel}>
-                {selectedFoods.length === 0 ? 'Select foods to add' : `Add ${selectedFoods.length} item${selectedFoods.length > 1 ? 's' : ''} · ${selectedFoodsTotals.caloriesKcal} kcal`}
+                {selectedFoods.length === 0
+                  ? LABELS.nutrition.selectFoodsToAdd
+                  : LABELS.nutrition.addItemsSummary
+                      .replace('{n}', selectedFoods.length)
+                      .replace('{s}', selectedFoods.length > 1 ? 's' : '')
+                      .replace('{kcal}', selectedFoodsTotals.caloriesKcal)}
               </Text>
             </TouchableOpacity>
           </>
         )}
       </QuickAddSheet>
 
-      <QuickAddSheet visible={targetOpen} title="Daily Targets" onClose={() => setTargetOpen(false)}>
+      <QuickAddSheet visible={targetOpen} title={LABELS.nutrition.dailyTargetsTitle} onClose={() => setTargetOpen(false)}>
         <View style={styles.sheetInfoRow}>
           <Ionicons name="information-circle-outline" size={14} color={colors.inkSoft} />
-          <Text style={styles.sheetInfoText}>These targets power the Remaining ring and macro bars on this screen.</Text>
+          <Text style={styles.sheetInfoText}>{LABELS.nutrition.dailyTargetsInfo}</Text>
         </View>
 
-        <Text style={styles.fieldLabel}>Daily Calorie Target</Text>
+        <Text style={styles.fieldLabel}>{LABELS.nutrition.dailyCalorieTarget}</Text>
         <View style={styles.inputRow}>
           <View style={styles.inputIconWrap}>
             <Ionicons name="flame-outline" size={16} color={colors.steps} />
@@ -580,22 +591,22 @@ export default function NutritionScreen() {
           <TextInput
             style={styles.inputField}
             keyboardType="number-pad"
-            placeholder="e.g. 2100"
+            placeholder={LABELS.nutrition.calorieTargetPlaceholder}
             placeholderTextColor={colors.inkFaint}
             value={targetInputs.calorieGoal}
             onChangeText={(v) => setTargetInputs((f) => ({ ...f, calorieGoal: v }))}
           />
-          <Text style={styles.inputSuffix}>kcal</Text>
+          <Text style={styles.inputSuffix}>{LABELS.nutrition.kcal}</Text>
         </View>
 
-        <Text style={styles.fieldLabel}>Macro Targets</Text>
+        <Text style={styles.fieldLabel}>{LABELS.nutrition.macroTargets}</Text>
         <View style={styles.macroFieldRow}>
           <MacroField
             styles={styles}
             colors={colors}
             icon="barbell-outline"
             iconColor={macroColors.protein}
-            label="Protein"
+            label={LABELS.nutrition.protein}
             value={targetInputs.proteinGoalG}
             onChangeText={(v) => setTargetInputs((f) => ({ ...f, proteinGoalG: v }))}
           />
@@ -604,7 +615,7 @@ export default function NutritionScreen() {
             colors={colors}
             icon="leaf-outline"
             iconColor={macroColors.carbs}
-            label="Carbs"
+            label={LABELS.nutrition.carbs}
             value={targetInputs.carbsGoalG}
             onChangeText={(v) => setTargetInputs((f) => ({ ...f, carbsGoalG: v }))}
           />
@@ -613,50 +624,50 @@ export default function NutritionScreen() {
             colors={colors}
             icon="water-outline"
             iconColor={macroColors.fats}
-            label="Fats"
+            label={LABELS.nutrition.fats}
             value={targetInputs.fatsGoalG}
             onChangeText={(v) => setTargetInputs((f) => ({ ...f, fatsGoalG: v }))}
           />
         </View>
 
         <TouchableOpacity style={styles.submitBtn} onPress={saveTargets}>
-          <Text style={styles.submitLabel}>Save</Text>
+          <Text style={styles.submitLabel}>{LABELS.common.save}</Text>
         </TouchableOpacity>
       </QuickAddSheet>
 
       <QuickAddSheet
         visible={rangeOpen}
-        title="Time Period"
+        title={LABELS.activity.timePeriodTitle}
         accentColor={colors.steps}
         options={RANGE_OPTIONS.map((r) => ({ label: r.label, icon: r.icon, active: r.key === rangeKey, onPress: () => setRangeKey(r.key) }))}
         onClose={() => setRangeOpen(false)}
       >
         <View style={styles.sheetInfoRow}>
           <Ionicons name="information-circle-outline" size={14} color={colors.inkSoft} />
-          <Text style={styles.sheetInfoText}>Sets how far back the Calorie Trend chart above looks — from this week up to a full year.</Text>
+          <Text style={styles.sheetInfoText}>{LABELS.nutrition.timePeriodInfo}</Text>
         </View>
       </QuickAddSheet>
 
-      <QuickAddSheet visible={infoOpen} title="About These Numbers" onClose={() => setInfoOpen(false)}>
+      <QuickAddSheet visible={infoOpen} title={LABELS.nutrition.aboutNumbersTitle} onClose={() => setInfoOpen(false)}>
         <View style={styles.infoDefRow}>
-          <Text style={styles.infoDefTerm}>Consumed</Text>
-          <Text style={styles.infoDefText}>Calories from meals you've logged today.</Text>
+          <Text style={styles.infoDefTerm}>{LABELS.nutrition.consumed}</Text>
+          <Text style={styles.infoDefText}>{LABELS.nutrition.defConsumedText}</Text>
         </View>
         <View style={styles.infoDefRow}>
-          <Text style={styles.infoDefTerm}>Burned</Text>
-          <Text style={styles.infoDefText}>An estimate from today's steps plus any workouts you've logged — not a direct measurement.</Text>
+          <Text style={styles.infoDefTerm}>{LABELS.nutrition.burned}</Text>
+          <Text style={styles.infoDefText}>{LABELS.nutrition.defBurnedText}</Text>
         </View>
         <View style={styles.infoDefRow}>
-          <Text style={styles.infoDefTerm}>Net Intake</Text>
-          <Text style={styles.infoDefText}>Consumed minus Burned. Negative means a calorie deficit, positive means a surplus.</Text>
+          <Text style={styles.infoDefTerm}>{LABELS.nutrition.netIntake}</Text>
+          <Text style={styles.infoDefText}>{LABELS.nutrition.defNetIntakeText}</Text>
         </View>
         <View style={styles.infoDefRow}>
-          <Text style={styles.infoDefTerm}>Calorie Trend</Text>
-          <Text style={styles.infoDefText}>Net Intake averaged per day over the period you pick — the dashed line marks a balanced (0) day.</Text>
+          <Text style={styles.infoDefTerm}>{LABELS.nutrition.calorieTrend}</Text>
+          <Text style={styles.infoDefText}>{LABELS.nutrition.defCalorieTrendText}</Text>
         </View>
         <View style={styles.sheetInfoRow}>
           <Ionicons name="alert-circle-outline" size={14} color={colors.inkSoft} />
-          <Text style={styles.sheetInfoText}>General guidance based on your own logged data — not medical advice.</Text>
+          <Text style={styles.sheetInfoText}>{LABELS.nutrition.generalGuidanceNote}</Text>
         </View>
       </QuickAddSheet>
     </View>

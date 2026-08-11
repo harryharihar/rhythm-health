@@ -13,10 +13,9 @@ import { spacing } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
 import { formatFriendlyDate, formatHoursMinutes, greeting, sumByDay } from '../utils/dateUtils';
 import { estimateCaloriesFromSteps, estimateDistanceKm, groupWorkoutsByType, iconForType } from '../utils/healthCalculations';
+import { LABELS } from '../constants/labels';
 
-const HEART_RATE_INFO = Platform.OS === 'ios'
-  ? "This is your most recent BPM and resting heart rate reading, read directly from Apple Health (HealthKit) — usually recorded by a paired Apple Watch or another connected monitor. Rhythm doesn't measure heart rate itself, it only displays your latest Health app reading. It refreshes each time you open this screen."
-  : 'Heart rate is read from Apple Health (HealthKit), which only exists on iOS — there is no equivalent source wired up for Android yet, so this has no real reading to show here.';
+const HEART_RATE_INFO = Platform.OS === 'ios' ? LABELS.home.heartRateInfoIOS : LABELS.home.heartRateInfoAndroid;
 
 // Typical adult sleep-stage proportions, applied to the real logged total —
 // the total is real data, the stage split is an estimate (no sleep-stage
@@ -52,19 +51,14 @@ export default function HomeScreen() {
   const scorePct = Math.round(overallProgress * 100);
 
   const vitalityLabel =
-    scorePct >= 85 ? 'Excellent Vitality' : scorePct >= 65 ? 'Great Vitality' : scorePct >= 40 ? 'Good Vitality' : 'Building Momentum';
+    scorePct >= 85 ? LABELS.home.vitalityExcellent : scorePct >= 65 ? LABELS.home.vitalityGreat : scorePct >= 40 ? LABELS.home.vitalityGood : LABELS.home.vitalityBuilding;
 
   const vitalityNote = useMemo(() => {
-    if (todayTotals.sleepHours >= goals.sleepGoalHours) {
-      return `You are ${scorePct}% of the way to your daily wellness goal. Clean sleep last night boosted your recovery.`;
-    }
-    if (todayTotals.waterMl >= goals.waterGoalMl) {
-      return `You are ${scorePct}% of the way to your daily wellness goal. Hydration is on track today.`;
-    }
-    if (todayTotals.stepsCount >= goals.stepsGoal) {
-      return `You are ${scorePct}% of the way to your daily wellness goal. You've already hit your step goal.`;
-    }
-    return `You are ${scorePct}% of the way to your daily wellness goal. Keep logging to build momentum.`;
+    const base = LABELS.home.vitalityNoteBase.replace('{pct}', scorePct);
+    if (todayTotals.sleepHours >= goals.sleepGoalHours) return `${base} ${LABELS.home.vitalityReasonSleep}`;
+    if (todayTotals.waterMl >= goals.waterGoalMl) return `${base} ${LABELS.home.vitalityReasonWater}`;
+    if (todayTotals.stepsCount >= goals.stepsGoal) return `${base} ${LABELS.home.vitalityReasonSteps}`;
+    return `${base} ${LABELS.home.vitalityReasonDefault}`;
   }, [scorePct, todayTotals, goals]);
 
   const weekSteps = useMemo(() => sumByDay(steps, 7, 'count'), [steps]);
@@ -128,7 +122,7 @@ export default function HomeScreen() {
             color={colors.primary}
             trackColor={colors.line}
             centerValue={`${scorePct}%`}
-            centerLabel="Score"
+            centerLabel={LABELS.home.score}
           />
           <View style={styles.heroText}>
             <Text style={styles.heroTitle}>{vitalityLabel}</Text>
@@ -137,21 +131,21 @@ export default function HomeScreen() {
         </Card>
 
         <View style={styles.grid}>
-          <StatCard icon="footsteps" dotColor={colors.danger} label="Steps" value={todayTotals.stepsCount.toLocaleString()} unit={`/${Math.round(goals.stepsGoal / 1000)}k`} caption="Auto-tracked" />
-          <StatCard icon="flame" dotColor={colors.steps} label="Calories" value={calories} unit="kcal" caption={caloriesCaption} />
-          <StatCard icon="location" dotColor={colors.primary} label="Distance" value={distanceKm} unit="km" caption={distanceCaption} />
-          <StatCard icon="flash" dotColor={colors.sleep} label="Active" value={activeMinutes} unit="min" caption={workoutsByTypeToday.length ? workoutsByTypeToday.map((w) => w.type).join(', ') : null} />
+          <StatCard icon="footsteps" dotColor={colors.danger} label={LABELS.home.steps} value={todayTotals.stepsCount.toLocaleString()} unit={`/${Math.round(goals.stepsGoal / 1000)}k`} caption={LABELS.home.autoTracked} />
+          <StatCard icon="flame" dotColor={colors.steps} label={LABELS.home.calories} value={calories} unit="kcal" caption={caloriesCaption} />
+          <StatCard icon="location" dotColor={colors.primary} label={LABELS.home.distance} value={distanceKm} unit="km" caption={distanceCaption} />
+          <StatCard icon="flash" dotColor={colors.sleep} label={LABELS.home.active} value={activeMinutes} unit="min" caption={workoutsByTypeToday.length ? workoutsByTypeToday.map((w) => w.type).join(', ') : null} />
         </View>
 
         {todayTotals.todayWorkouts.length > 0 && (
           <Card>
-            <Text style={styles.breakdownTitle}>Today's Breakdown</Text>
+            <Text style={styles.breakdownTitle}>{LABELS.home.todaysBreakdown}</Text>
             <View style={styles.breakdownRow}>
               <View style={[styles.breakdownIcon, { backgroundColor: colors.stepsSoft }]}>
                 <Ionicons name="footsteps-outline" size={16} color={colors.steps} />
               </View>
-              <Text style={styles.breakdownLabel}>Steps</Text>
-              <Text style={styles.breakdownAutoTag}>Auto</Text>
+              <Text style={styles.breakdownLabel}>{LABELS.home.steps}</Text>
+              <Text style={styles.breakdownAutoTag}>{LABELS.home.auto}</Text>
               <Text style={styles.breakdownValue}>
                 {todayTotals.stepsCount.toLocaleString()} steps · {stepsDistanceToday} km · {stepsCaloriesToday} kcal
               </Text>
@@ -175,26 +169,26 @@ export default function HomeScreen() {
             <View style={styles.cardHeaderRow}>
               <View style={styles.titleWithIcon}>
                 <Ionicons name="heart" size={16} color={colors.danger} />
-                <Text style={styles.sectionTitle}>Heart Rate</Text>
+                <Text style={styles.sectionTitle}>{LABELS.home.heartRateTitle}</Text>
               </View>
-              <TouchableOpacity onPress={() => Alert.alert('About Heart Rate', HEART_RATE_INFO)} hitSlop={8}>
+              <TouchableOpacity onPress={() => Alert.alert(LABELS.home.heartRateInfoTitle, HEART_RATE_INFO)} hitSlop={8}>
                 <Ionicons name="information-circle-outline" size={18} color={colors.inkSoft} />
               </TouchableOpacity>
             </View>
             <View style={styles.heartRow}>
               <Text style={styles.heartValue}>
-                {hk.heartRate.bpm} <Text style={styles.heartUnit}>BPM</Text>
+                {hk.heartRate.bpm} <Text style={styles.heartUnit}>{LABELS.home.bpm}</Text>
               </Text>
-              <Text style={styles.caption}>Resting: {hk.heartRate.restingBpm ?? '—'}</Text>
+              <Text style={styles.caption}>{LABELS.home.resting}: {hk.heartRate.restingBpm ?? '—'}</Text>
             </View>
-            <Text style={styles.sourceCaption}>Synced from Apple Health</Text>
+            <Text style={styles.sourceCaption}>{LABELS.home.syncedFromAppleHealth}</Text>
           </Card>
         )}
 
         <Card>
           <View style={styles.cardHeaderRow}>
-            <Text style={styles.sectionTitle}>Weekly Activity</Text>
-            <Text style={styles.caption}>Daily Average: <Text style={{ fontWeight: '800', color: colors.ink }}>{dailyAvgPct}%</Text></Text>
+            <Text style={styles.sectionTitle}>{LABELS.home.weeklyActivity}</Text>
+            <Text style={styles.caption}>{LABELS.home.dailyAverage}: <Text style={{ fontWeight: '800', color: colors.ink }}>{dailyAvgPct}%</Text></Text>
           </View>
           <WeekBars data={weekSteps} color={colors.steps} trackColor={colors.stepsSoft} height={90} />
         </Card>
@@ -203,7 +197,7 @@ export default function HomeScreen() {
           <View style={styles.cardHeaderRow}>
             <View style={styles.titleWithIcon}>
               <Ionicons name="moon" size={16} color={colors.sleep} />
-              <Text style={styles.sectionTitle}>Sleep Analysis</Text>
+              <Text style={styles.sectionTitle}>{LABELS.home.sleepAnalysis}</Text>
             </View>
             <Text style={styles.caption}>{formatHoursMinutes(sleepHours)}</Text>
           </View>
@@ -216,38 +210,38 @@ export default function HomeScreen() {
                 <View style={[styles.sleepSeg, { flex: sleepStages.awake, backgroundColor: colors.danger }]} />
               </View>
               <View style={styles.sleepLegend}>
-                <SleepLegendItem styles={styles} color={colors.sleep} label="Deep" value={formatHoursMinutes(sleepStages.deep)} />
-                <SleepLegendItem styles={styles} color={withAlpha(colors.sleep, 0.5)} label="Light" value={formatHoursMinutes(sleepStages.light)} />
-                <SleepLegendItem styles={styles} color={colors.water} label="REM" value={formatHoursMinutes(sleepStages.rem)} />
-                <SleepLegendItem styles={styles} color={colors.danger} label="Awake" value={formatHoursMinutes(sleepStages.awake)} />
+                <SleepLegendItem styles={styles} color={colors.sleep} label={LABELS.home.stageDeep} value={formatHoursMinutes(sleepStages.deep)} />
+                <SleepLegendItem styles={styles} color={withAlpha(colors.sleep, 0.5)} label={LABELS.home.stageLight} value={formatHoursMinutes(sleepStages.light)} />
+                <SleepLegendItem styles={styles} color={colors.water} label={LABELS.home.stageRem} value={formatHoursMinutes(sleepStages.rem)} />
+                <SleepLegendItem styles={styles} color={colors.danger} label={LABELS.home.stageAwake} value={formatHoursMinutes(sleepStages.awake)} />
               </View>
             </>
           ) : (
-            <Text style={styles.empty}>No sleep logged yet — log last night in the Sleep tab.</Text>
+            <Text style={styles.empty}>{LABELS.home.noSleepLogged}</Text>
           )}
         </Card>
 
         <View style={styles.bottomRow}>
           <Card style={styles.bottomCard}>
             <View style={styles.cardHeaderRow}>
-              <Text style={styles.sectionTitle}>Water Intake</Text>
+              <Text style={styles.sectionTitle}>{LABELS.home.waterIntake}</Text>
               <Ionicons name="water" size={16} color={colors.water} />
             </View>
             <View style={styles.waterRow}>
               <RingGauge progress={fillPct} size={56} strokeWidth={6} color={colors.water} trackColor={colors.waterSoft} />
               <View style={styles.waterText}>
                 <Text style={styles.bigValue}>{waterLitres} L</Text>
-                <Text style={styles.caption}>Goal: {waterGoalLitres}L</Text>
+                <Text style={styles.caption}>{LABELS.home.goal}: {waterGoalLitres}L</Text>
               </View>
             </View>
             <TouchableOpacity style={styles.addBtn} onPress={() => addWater(250)}>
-              <Text style={styles.addBtnLabel}>+ Add 250ml</Text>
+              <Text style={styles.addBtnLabel}>{LABELS.home.addQuick250}</Text>
             </TouchableOpacity>
           </Card>
 
           <Card style={styles.bottomCard}>
             <View style={styles.cardHeaderRow}>
-              <Text style={styles.sectionTitle}>Weight Trend</Text>
+              <Text style={styles.sectionTitle}>{LABELS.home.weightTrend}</Text>
               {weightDelta != null ? (
                 <Text style={[styles.caption, { color: deltaColor, fontWeight: '800' }]}>
                   {weightDelta > 0 ? '+' : ''}{weightDelta.toFixed(1)} kg
@@ -255,7 +249,7 @@ export default function HomeScreen() {
               ) : null}
             </View>
             <Text style={styles.bigValue}>{todayTotals.latestWeight ?? '—'} kg</Text>
-            <Text style={styles.caption}>Last 7 logs</Text>
+            <Text style={styles.caption}>{LABELS.home.last7Logs}</Text>
             {weightValues.length >= 2 ? (
               <View style={styles.sparklineWrap}>
                 <Sparkline data={weightValues} color={colors.primary} width={130} height={34} strokeWidth={2} />

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { radius, shadow, spacing } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
+import { LABELS } from '../constants/labels';
 
 // Expo SDK 54's mandatory Android edge-to-edge mode makes how much
 // windowSoftInputMode="adjustResize" actually shrinks the window inconsistent
@@ -126,7 +127,7 @@ export default function QuickAddSheet({ visible, title, options, accentColor, on
               </View>
             ) : null}
             <TouchableOpacity style={styles.cancel} onPress={onClose}>
-              <Text style={styles.cancelLabel}>Cancel</Text>
+              <Text style={styles.cancelLabel}>{LABELS.common.cancel}</Text>
             </TouchableOpacity>
           </SheetScroll>
         </Animated.View>

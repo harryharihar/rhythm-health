@@ -12,6 +12,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import { glow } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
 import { useHealthStore } from '../store/healthStore';
+import { LABELS } from '../constants/labels';
 
 const Tab = createBottomTabNavigator();
 
@@ -81,11 +82,11 @@ export default function RootNavigator() {
           ),
         })}
       >
-        <Tab.Screen name="Home" component={HomeScreen} />
-        <Tab.Screen name="Activity" component={ActivityScreen} />
-        <Tab.Screen name="Nutrition" component={NutritionScreen} />
-        <Tab.Screen name="Sleep" component={SleepScreen} />
-        <Tab.Screen name="Profile" component={ProfileScreen} />
+        <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: LABELS.nav.home }} />
+        <Tab.Screen name="Activity" component={ActivityScreen} options={{ tabBarLabel: LABELS.nav.activity }} />
+        <Tab.Screen name="Nutrition" component={NutritionScreen} options={{ tabBarLabel: LABELS.nav.nutrition }} />
+        <Tab.Screen name="Sleep" component={SleepScreen} options={{ tabBarLabel: LABELS.nav.sleep }} />
+        <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: LABELS.nav.profile }} />
       </Tab.Navigator>
     </NavigationContainer>
   );

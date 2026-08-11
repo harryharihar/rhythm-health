@@ -16,14 +16,15 @@ import { glow, radius, spacing } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
 import { bedtimeOptions, formatClockLabel, wakeTimeOptions } from '../utils/dateUtils';
 import { GENDER_OPTIONS } from './OnboardingScreen';
+import { LABELS } from '../constants/labels';
 
 const NOTIFICATION_TIME_OPTIONS = [
-  { label: '7:00 AM', icon: 'sunny-outline' },
-  { label: '8:00 AM', icon: 'sunny-outline' },
-  { label: '6:00 PM', icon: 'partly-sunny-outline' },
-  { label: '8:00 PM', icon: 'moon-outline' },
-  { label: '9:00 PM', icon: 'moon-outline' },
-  { label: '10:00 PM', icon: 'moon-outline' },
+  { label: LABELS.profile.notifTime7am, icon: 'sunny-outline' },
+  { label: LABELS.profile.notifTime8am, icon: 'sunny-outline' },
+  { label: LABELS.profile.notifTime6pm, icon: 'partly-sunny-outline' },
+  { label: LABELS.profile.notifTime8pm, icon: 'moon-outline' },
+  { label: LABELS.profile.notifTime9pm, icon: 'moon-outline' },
+  { label: LABELS.profile.notifTime10pm, icon: 'moon-outline' },
 ];
 const genderLabel = (value) => GENDER_OPTIONS.find((g) => g.value === value)?.label;
 const APP_VERSION = Constants.expoConfig?.version || '1.0.0';
@@ -61,10 +62,10 @@ function computeBmi(heightCm, weightKg) {
 }
 
 const bmiCategories = (colors) => [
-  { label: 'Underweight', range: 'Below 18.5', min: -Infinity, max: 18.5, color: colors.water },
-  { label: 'Normal', range: '18.5 – 24.9', min: 18.5, max: 25, color: colors.primary },
-  { label: 'Overweight', range: '25 – 29.9', min: 25, max: 30, color: colors.steps },
-  { label: 'Obese', range: '30 and above', min: 30, max: Infinity, color: colors.danger },
+  { label: LABELS.profile.bmiUnderweight, range: LABELS.profile.bmiUnderweightRange, min: -Infinity, max: 18.5, color: colors.water },
+  { label: LABELS.profile.bmiNormal, range: LABELS.profile.bmiNormalRange, min: 18.5, max: 25, color: colors.primary },
+  { label: LABELS.profile.bmiOverweight, range: LABELS.profile.bmiOverweightRange, min: 25, max: 30, color: colors.steps },
+  { label: LABELS.profile.bmiObese, range: LABELS.profile.bmiObeseRange, min: 30, max: Infinity, color: colors.danger },
 ];
 
 function bmiCategoryFor(bmiValue, categories) {
@@ -73,9 +74,9 @@ function bmiCategoryFor(bmiValue, categories) {
 }
 
 const GOAL_META = {
-  steps: { title: 'Daily Steps Goal', icon: 'footsteps-outline', unit: 'steps', description: 'How many steps you aim to walk each day.' },
-  water: { title: 'Water Intake Goal', icon: 'water-outline', unit: 'ml', description: 'Your daily water intake target, in millilitres.' },
-  sleep: { title: 'Sleep Target', icon: 'moon-outline', unit: 'hours', description: 'How many hours of sleep you aim to get each night.' },
+  steps: { title: LABELS.profile.goalStepsTitle, icon: 'footsteps-outline', unit: LABELS.profile.goalStepsUnit, description: LABELS.profile.goalStepsDescription },
+  water: { title: LABELS.profile.goalWaterTitle, icon: 'water-outline', unit: LABELS.profile.goalWaterUnit, description: LABELS.profile.goalWaterDescription },
+  sleep: { title: LABELS.profile.goalSleepTitle, icon: 'moon-outline', unit: LABELS.profile.goalSleepUnit, description: LABELS.profile.goalSleepDescription },
 };
 
 export default function ProfileScreen() {
@@ -147,9 +148,9 @@ export default function ProfileScreen() {
     const granted = await requestNotificationPermissions();
     if (!granted) {
       Alert.alert(
-        'Notifications are off',
-        'Rhythm needs notification permission to send reminders. Enable it for Rhythm in your device Settings.',
-        [{ text: 'Cancel', style: 'cancel' }, { text: 'Open Settings', onPress: () => Linking.openSettings() }]
+        LABELS.profile.notificationsOffTitle,
+        LABELS.profile.notificationsOffBody,
+        [{ text: LABELS.common.cancel, style: 'cancel' }, { text: LABELS.profile.openSettings, onPress: () => Linking.openSettings() }]
       );
     }
   };
@@ -157,18 +158,24 @@ export default function ProfileScreen() {
   const handleExport = async () => {
     const data = await exportAllData();
     Alert.alert(
-      'Export preview',
-      `This device has ${data.water.length} water logs, ${data.sleep.length} sleep logs, ${data.steps.length} step entries, ${data.weight.length} weight logs, ${data.workouts.length} workouts, and ${data.meals.length} meals.\n\nFile export/sharing isn't wired up yet — this previews what's stored.`
+      LABELS.profile.exportPreviewTitle,
+      LABELS.profile.exportPreviewBody
+        .replace('{water}', data.water.length)
+        .replace('{sleep}', data.sleep.length)
+        .replace('{steps}', data.steps.length)
+        .replace('{weight}', data.weight.length)
+        .replace('{workouts}', data.workouts.length)
+        .replace('{meals}', data.meals.length)
     );
   };
 
   const confirmClear = () => {
     Alert.alert(
-      'Clear all local data?',
-      'This removes your profile and every logged entry from this device. This cannot be undone.',
+      LABELS.profile.clearDataConfirmTitle,
+      LABELS.profile.clearDataConfirmBody,
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Clear data', style: 'destructive', onPress: resetAllData },
+        { text: LABELS.common.cancel, style: 'cancel' },
+        { text: LABELS.profile.clearDataConfirmAction, style: 'destructive', onPress: resetAllData },
       ]
     );
   };
@@ -177,7 +184,7 @@ export default function ProfileScreen() {
     <View style={styles.flex}>
       <LinearGradient colors={[colors.primaryGlow, 'transparent']} style={styles.ambient} pointerEvents="none" />
       <ScrollView style={styles.flex} contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Profile</Text>
+        <Text style={styles.title}>{LABELS.profile.title}</Text>
 
         <Card style={styles.heroCardWrap} contentStyle={styles.heroContent}>
           <View style={styles.avatarGlow}>
@@ -200,40 +207,40 @@ export default function ProfileScreen() {
               ) : null}
               {profile.age ? (
                 <View style={styles.metaPill}>
-                  <Text style={styles.metaPillText}>{profile.age} yrs</Text>
+                  <Text style={styles.metaPillText}>{profile.age} {LABELS.profile.yrs}</Text>
                 </View>
               ) : null}
             </View>
           ) : null}
           <TouchableOpacity style={styles.editBtn} onPress={openEdit}>
             <Ionicons name="create-outline" size={14} color={colors.onAccent} />
-            <Text style={styles.editBtnText}>Edit Profile</Text>
+            <Text style={styles.editBtnText}>{LABELS.profile.editProfile}</Text>
           </TouchableOpacity>
 
           {profile.heightCm || profile.weightKg ? (
             <View style={styles.quickStatsRow}>
               {profile.heightCm ? (
-                <QuickStat styles={styles} colors={colors} icon="resize-outline" value={profile.heightCm} unit="cm" label="Height" />
+                <QuickStat styles={styles} colors={colors} icon="resize-outline" value={profile.heightCm} unit="cm" label={LABELS.profile.height} />
               ) : null}
               {profile.heightCm && profile.weightKg ? <View style={styles.quickStatDivider} /> : null}
               {profile.weightKg ? (
-                <QuickStat styles={styles} colors={colors} icon="fitness-outline" value={profile.weightKg} unit="kg" label="Weight" />
+                <QuickStat styles={styles} colors={colors} icon="fitness-outline" value={profile.weightKg} unit="kg" label={LABELS.profile.weight} />
               ) : null}
               {bmi && (profile.heightCm || profile.weightKg) ? <View style={styles.quickStatDivider} /> : null}
               {bmi ? (
-                <QuickStat styles={styles} colors={colors} icon="body-outline" value={bmi} label="BMI" info onPress={() => setBmiInfoOpen(true)} />
+                <QuickStat styles={styles} colors={colors} icon="body-outline" value={bmi} label={LABELS.profile.bmi} info onPress={() => setBmiInfoOpen(true)} />
               ) : null}
             </View>
           ) : null}
         </Card>
 
-        <SectionLabel styles={styles} colors={colors} icon="options-outline" text="PREFERENCES" />
+        <SectionLabel styles={styles} colors={colors} icon="options-outline" text={LABELS.profile.sectionPreferences} />
         <Card>
           <SettingRow
             styles={styles}
             colors={colors}
             icon={settings.darkMode ? 'moon' : 'sunny'}
-            label="Dark Mode"
+            label={LABELS.profile.darkMode}
             right={
               <Switch
                 value={settings.darkMode}
@@ -247,8 +254,8 @@ export default function ProfileScreen() {
             styles={styles}
             colors={colors}
             icon="notifications-outline"
-            label="Reminders"
-            subtitle="Get notifications for water, steps & sleep goals"
+            label={LABELS.profile.reminders}
+            subtitle={LABELS.profile.remindersSubtitle}
             right={
               <Switch
                 value={settings.remindersEnabled}
@@ -262,14 +269,14 @@ export default function ProfileScreen() {
             styles={styles}
             colors={colors}
             icon="alarm-outline"
-            label="Notification Time"
+            label={LABELS.profile.notificationTime}
             value={settings.notificationTime}
             last
             onPress={() => setTimeSheetOpen(true)}
           />
         </Card>
 
-        <SectionLabel styles={styles} colors={colors} icon="flag-outline" text="GOALS" />
+        <SectionLabel styles={styles} colors={colors} icon="flag-outline" text={LABELS.profile.sectionGoals} />
         <Card>
           <SettingRow
             styles={styles}
@@ -277,7 +284,7 @@ export default function ProfileScreen() {
             icon="footsteps-outline"
             iconColor={colors.steps}
             iconBg={colors.stepsSoft}
-            label="Daily steps"
+            label={LABELS.profile.dailySteps}
             value={profile.goals.stepsGoal.toLocaleString()}
             onPress={() => openGoal('steps', profile.goals.stepsGoal)}
           />
@@ -287,7 +294,7 @@ export default function ProfileScreen() {
             icon="water-outline"
             iconColor={colors.water}
             iconBg={colors.waterSoft}
-            label="Water intake"
+            label={LABELS.profile.waterIntake}
             value={`${profile.goals.waterGoalMl} ml`}
             onPress={() => openGoal('water', profile.goals.waterGoalMl)}
           />
@@ -297,7 +304,7 @@ export default function ProfileScreen() {
             icon="moon-outline"
             iconColor={colors.sleep}
             iconBg={colors.sleepSoft}
-            label="Sleep target"
+            label={LABELS.profile.sleepTarget}
             value={`${profile.goals.sleepGoalHours} h`}
             onPress={() => openGoal('sleep', profile.goals.sleepGoalHours)}
           />
@@ -307,8 +314,8 @@ export default function ProfileScreen() {
             icon="bed-outline"
             iconColor={colors.sleep}
             iconBg={colors.sleepSoft}
-            label="Bedtime goal"
-            value={profile.goals.bedtimeGoal ? formatClockLabel(profile.goals.bedtimeGoal) : 'Not set'}
+            label={LABELS.profile.bedtimeGoal}
+            value={profile.goals.bedtimeGoal ? formatClockLabel(profile.goals.bedtimeGoal) : LABELS.profile.notSet}
             onPress={() => setClockGoalSheet('bedtime')}
           />
           <SettingRow
@@ -317,46 +324,46 @@ export default function ProfileScreen() {
             icon="sunny-outline"
             iconColor={colors.steps}
             iconBg={colors.stepsSoft}
-            label="Wake time goal"
-            value={profile.goals.wakeTimeGoal ? formatClockLabel(profile.goals.wakeTimeGoal) : 'Not set'}
+            label={LABELS.profile.wakeTimeGoal}
+            value={profile.goals.wakeTimeGoal ? formatClockLabel(profile.goals.wakeTimeGoal) : LABELS.profile.notSet}
             onPress={() => setClockGoalSheet('wakeTime')}
             last
           />
         </Card>
 
-        <SectionLabel styles={styles} colors={colors} icon="server-outline" text="DATA & STORAGE" />
+        <SectionLabel styles={styles} colors={colors} icon="server-outline" text={LABELS.profile.sectionDataStorage} />
         <Card>
-          <SettingRow styles={styles} colors={colors} icon="save-outline" label="Storage Used" value={dbSizeMb != null ? `${dbSizeMb.toFixed(1)} MB` : '—'} />
-          <SettingRow styles={styles} colors={colors} icon="download-outline" label="Export Data" onPress={handleExport} />
+          <SettingRow styles={styles} colors={colors} icon="save-outline" label={LABELS.profile.storageUsed} value={dbSizeMb != null ? `${dbSizeMb.toFixed(1)} MB` : '—'} />
+          <SettingRow styles={styles} colors={colors} icon="download-outline" label={LABELS.profile.exportData} onPress={handleExport} />
           <SettingRow
             styles={styles}
             colors={colors}
             icon="trash-outline"
             iconColor={colors.danger}
             iconBg={colors.dangerSoft}
-            label="Clear All Data"
-            subtitle="Remove all stored health data from device"
+            label={LABELS.profile.clearAllData}
+            subtitle={LABELS.profile.clearAllDataSubtitle}
             danger
             last
             onPress={confirmClear}
           />
         </Card>
 
-        <SectionLabel styles={styles} colors={colors} icon="information-circle-outline" text="ABOUT" />
+        <SectionLabel styles={styles} colors={colors} icon="information-circle-outline" text={LABELS.profile.sectionAbout} />
         <Card>
-          <SettingRow styles={styles} colors={colors} icon="pricetag-outline" label="App Version" value={APP_VERSION} />
+          <SettingRow styles={styles} colors={colors} icon="pricetag-outline" label={LABELS.profile.appVersion} value={APP_VERSION} />
           <SettingRow
             styles={styles}
             colors={colors}
             icon="shield-checkmark-outline"
-            label="Privacy Policy"
+            label={LABELS.profile.privacyPolicy}
             onPress={() => setDocScreen('privacy')}
           />
           <SettingRow
             styles={styles}
             colors={colors}
             icon="document-text-outline"
-            label="Terms of Service"
+            label={LABELS.profile.termsOfService}
             last
             onPress={() => setDocScreen('terms')}
           />
@@ -365,34 +372,34 @@ export default function ProfileScreen() {
 
       <EntryDialog
         visible={editOpen}
-        title="Edit Profile"
+        title={LABELS.profile.editProfileTitle}
         onClose={() => setEditOpen(false)}
         footer={
           <TouchableOpacity style={styles.submitBtn} onPress={saveEdit}>
-            <Text style={styles.submitLabel}>Save</Text>
+            <Text style={styles.submitLabel}>{LABELS.common.save}</Text>
           </TouchableOpacity>
         }
       >
-        <LabeledField styles={styles} colors={colors} label="Name">
+        <LabeledField styles={styles} colors={colors} label={LABELS.profile.nameLabel}>
           <TextInput
             style={styles.input}
-            placeholder="Name"
+            placeholder={LABELS.profile.nameLabel}
             placeholderTextColor={colors.inkFaint}
             value={editFields.name}
             onChangeText={(v) => setEditFields((f) => ({ ...f, name: v }))}
           />
         </LabeledField>
-        <LabeledField styles={styles} colors={colors} label="Age">
+        <LabeledField styles={styles} colors={colors} label={LABELS.profile.ageLabel}>
           <TextInput
             style={styles.input}
-            placeholder="Age"
+            placeholder={LABELS.profile.ageLabel}
             keyboardType="number-pad"
             placeholderTextColor={colors.inkFaint}
             value={editFields.age}
             onChangeText={(v) => setEditFields((f) => ({ ...f, age: v }))}
           />
         </LabeledField>
-        <LabeledField styles={styles} colors={colors} label="Gender">
+        <LabeledField styles={styles} colors={colors} label={LABELS.profile.genderLabel}>
           <View style={styles.genderRow}>
             {GENDER_OPTIONS.map((opt) => (
               <TouchableOpacity
@@ -405,20 +412,20 @@ export default function ProfileScreen() {
             ))}
           </View>
         </LabeledField>
-        <LabeledField styles={styles} colors={colors} label="Height (cm)">
+        <LabeledField styles={styles} colors={colors} label={LABELS.profile.heightCmLabel}>
           <TextInput
             style={styles.input}
-            placeholder="Height (cm)"
+            placeholder={LABELS.profile.heightCmLabel}
             keyboardType="decimal-pad"
             placeholderTextColor={colors.inkFaint}
             value={editFields.heightCm}
             onChangeText={(v) => setEditFields((f) => ({ ...f, heightCm: v }))}
           />
         </LabeledField>
-        <LabeledField styles={styles} colors={colors} label="Weight (kg)">
+        <LabeledField styles={styles} colors={colors} label={LABELS.profile.weightKgLabel}>
           <TextInput
             style={styles.input}
-            placeholder="Weight (kg)"
+            placeholder={LABELS.profile.weightKgLabel}
             keyboardType="decimal-pad"
             placeholderTextColor={colors.inkFaint}
             value={editFields.weightKg}
@@ -429,13 +436,13 @@ export default function ProfileScreen() {
 
       <EntryDialog
         visible={!!goalSheet}
-        title={goalMeta?.title || 'Update goal'}
+        title={goalMeta?.title || LABELS.profile.updateGoalFallbackTitle}
         description={goalMeta?.description}
         accentColor={goalAccent}
         onClose={() => setGoalSheet(null)}
         footer={
           <TouchableOpacity style={[styles.submitBtn, { backgroundColor: goalAccent }]} onPress={saveGoal}>
-            <Text style={styles.submitLabel}>Save</Text>
+            <Text style={styles.submitLabel}>{LABELS.common.save}</Text>
           </TouchableOpacity>
         }
       >
@@ -450,7 +457,7 @@ export default function ProfileScreen() {
           <TextInput
             style={[styles.input, styles.goalInputField]}
             keyboardType="decimal-pad"
-            placeholder="New goal value"
+            placeholder={LABELS.profile.newGoalValuePlaceholder}
             placeholderTextColor={colors.inkFaint}
             value={goalValue}
             onChangeText={setGoalValue}
@@ -462,9 +469,9 @@ export default function ProfileScreen() {
 
       <EntryDialog
         visible={!!clockGoalSheet}
-        title={clockGoalSheet === 'bedtime' ? 'Bedtime Goal' : 'Wake Time Goal'}
+        title={clockGoalSheet === 'bedtime' ? LABELS.profile.bedtimeGoalTitle : LABELS.profile.wakeTimeGoalTitle}
         accentColor={colors.sleep}
-        description="Used on the Sleep screen to check whether last night's bedtime and wake time were on target."
+        description={LABELS.profile.clockGoalDescription}
         options={(clockGoalSheet === 'bedtime' ? bedtimeOptions() : wakeTimeOptions()).map((t) => ({
           label: t.label,
           icon: clockGoalSheet === 'bedtime' ? 'moon-outline' : 'sunny-outline',
@@ -476,7 +483,7 @@ export default function ProfileScreen() {
 
       <EntryDialog
         visible={timeSheetOpen}
-        title="Notification time"
+        title={LABELS.profile.notificationTimeTitle}
         accentColor={colors.primary}
         options={NOTIFICATION_TIME_OPTIONS.map((t) => ({
           label: t.label,
@@ -487,16 +494,14 @@ export default function ProfileScreen() {
         onClose={() => setTimeSheetOpen(false)}
       />
 
-      <InfoModal visible={bmiInfoOpen} title="About BMI" onClose={() => setBmiInfoOpen(false)}>
+      <InfoModal visible={bmiInfoOpen} title={LABELS.profile.aboutBmiTitle} onClose={() => setBmiInfoOpen(false)}>
         <View style={styles.sheetInfoRow}>
           <Ionicons name="information-circle-outline" size={14} color={colors.inkSoft} />
-          <Text style={styles.sheetInfoText}>
-            Body Mass Index estimates whether your weight is healthy for your height, calculated from the height and weight in your profile.
-          </Text>
+          <Text style={styles.sheetInfoText}>{LABELS.profile.aboutBmiIntro}</Text>
         </View>
         {profile.heightCm && profile.weightKg ? (
           <View style={styles.bmiFormulaBox}>
-            <Text style={styles.bmiFormulaLabel}>weight (kg) ÷ height (m)²</Text>
+            <Text style={styles.bmiFormulaLabel}>{LABELS.profile.bmiFormula}</Text>
             <Text style={styles.bmiFormulaText}>
               {profile.weightKg} ÷ ({(profile.heightCm / 100).toFixed(2)})² = <Text style={styles.bmiFormulaResult}>{bmi}</Text>
             </Text>
@@ -509,7 +514,7 @@ export default function ProfileScreen() {
             <Text style={styles.bmiCategoryRange}>{cat.range}</Text>
             {currentCategory?.label === cat.label ? (
               <View style={styles.bmiCurrentBadge}>
-                <Text style={styles.bmiCurrentBadgeText}>You</Text>
+                <Text style={styles.bmiCurrentBadgeText}>{LABELS.profile.you}</Text>
               </View>
             ) : null}
           </View>

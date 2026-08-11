@@ -6,12 +6,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { glow, radius, spacing } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
 import { useHealth } from '../store/healthStore';
+import { LABELS } from '../constants/labels';
 
 export const GENDER_OPTIONS = [
-  { value: 'female', label: 'Female' },
-  { value: 'male', label: 'Male' },
-  { value: 'other', label: 'Other' },
-  { value: 'unspecified', label: 'Prefer not to say' },
+  { value: 'female', label: LABELS.gender.female },
+  { value: 'male', label: LABELS.gender.male },
+  { value: 'other', label: LABELS.gender.other },
+  { value: 'unspecified', label: LABELS.gender.unspecified },
 ];
 
 export default function OnboardingScreen() {
@@ -59,17 +60,15 @@ export default function OnboardingScreen() {
         <View style={[styles.mark, glow(colors.primary, 24, 0.6)]}>
           <Text style={styles.markText}>♥</Text>
         </View>
-        <Text style={styles.eyebrow}>Welcome to</Text>
-        <Text style={styles.title}>Rhythm</Text>
-        <Text style={styles.subtitle}>
-          A few details to set your goals. Everything you enter stays on this device only.
-        </Text>
+        <Text style={styles.eyebrow}>{LABELS.onboarding.eyebrow}</Text>
+        <Text style={styles.title}>{LABELS.onboarding.appName}</Text>
+        <Text style={styles.subtitle}>{LABELS.onboarding.subtitle}</Text>
 
-        <Field styles={styles} colors={colors} label="Your name" value={name} onChangeText={setName} placeholder="Asha" />
-        <Field styles={styles} colors={colors} label="Age" value={age} onChangeText={setAge} placeholder="28" keyboardType="number-pad" />
+        <Field styles={styles} colors={colors} label={LABELS.onboarding.nameLabel} value={name} onChangeText={setName} placeholder={LABELS.onboarding.namePlaceholder} />
+        <Field styles={styles} colors={colors} label={LABELS.onboarding.ageLabel} value={age} onChangeText={setAge} placeholder={LABELS.onboarding.agePlaceholder} keyboardType="number-pad" />
 
         <View style={styles.field}>
-          <Text style={styles.fieldLabel}>Gender</Text>
+          <Text style={styles.fieldLabel}>{LABELS.onboarding.genderLabel}</Text>
           <View style={styles.genderRow}>
             {GENDER_OPTIONS.map((opt) => (
               <TouchableOpacity
@@ -83,15 +82,15 @@ export default function OnboardingScreen() {
           </View>
         </View>
 
-        <Field styles={styles} colors={colors} label="Height (cm)" value={heightCm} onChangeText={setHeightCm} placeholder="165" keyboardType="decimal-pad" />
-        <Field styles={styles} colors={colors} label="Current weight (kg)" value={weightKg} onChangeText={setWeightKg} placeholder="68" keyboardType="decimal-pad" />
+        <Field styles={styles} colors={colors} label={LABELS.onboarding.heightLabel} value={heightCm} onChangeText={setHeightCm} placeholder={LABELS.onboarding.heightPlaceholder} keyboardType="decimal-pad" />
+        <Field styles={styles} colors={colors} label={LABELS.onboarding.weightLabel} value={weightKg} onChangeText={setWeightKg} placeholder={LABELS.onboarding.weightPlaceholder} keyboardType="decimal-pad" />
 
         <TouchableOpacity
           style={[styles.button, !canContinue && styles.buttonDisabled]}
           onPress={handleContinue}
           disabled={!canContinue || saving}
         >
-          <Text style={styles.buttonText}>{saving ? 'Setting up…' : 'Get started'}</Text>
+          <Text style={styles.buttonText}>{saving ? LABELS.onboarding.submitSaving : LABELS.onboarding.submitReady}</Text>
         </TouchableOpacity>
       </KeyboardAwareScrollView>
     </View>
