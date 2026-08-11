@@ -35,6 +35,13 @@ export default function RootNavigator() {
   const colors = useThemeColors();
   const isDark = useHealthStore((s) => s.settings.darkMode);
   const insets = useSafeAreaInsets();
+  // Some OEM skins (confirmed on a Realme/ColorOS device in gesture-nav mode)
+  // report insets.bottom as 0 even though the system still reserves a
+  // gesture-hint zone at the bottom of the screen. With no inset, our tab
+  // bar drew flush to the edge and the OS drew its own gesture indicator
+  // directly across the tab labels. Flooring the inset guarantees clearance
+  // even when the real inset is under-reported.
+  const tabBarBottomInset = Math.max(insets.bottom, 16);
 
   const tabAccent = {
     Home: colors.primary,
@@ -64,9 +71,9 @@ export default function RootNavigator() {
             // behind the system nav bar on 3-button-nav Android devices —
             // the tab bar's own background needs to extend into that space
             // (paddingBottom) while the actual icons/labels stay above it.
-            height: 58 + insets.bottom,
+            height: 58 + tabBarBottomInset,
             paddingTop: 10,
-            paddingBottom: insets.bottom,
+            paddingBottom: tabBarBottomInset,
           },
           tabBarLabelStyle: { fontSize: 10.5, fontWeight: '700', marginTop: 2 },
           tabBarIcon: ({ focused, color }) => (
