@@ -6,6 +6,7 @@ import { useHealth, useHealthStore } from './src/store/healthStore';
 import RootNavigator from './src/navigation/RootNavigator';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import { useThemeColors } from './src/theme/useTheme';
+import { initNotifications } from './src/notifications/setup';
 
 function Gate() {
   const { loading, profile, settings } = useHealth();
@@ -14,6 +15,10 @@ function Gate() {
   useEffect(() => {
     useHealthStore.getState().initialize();
     return () => useHealthStore.getState().teardown();
+  }, []);
+
+  useEffect(() => {
+    initNotifications();
   }, []);
 
   if (loading) {

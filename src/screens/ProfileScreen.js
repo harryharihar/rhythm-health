@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Linking, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
@@ -9,6 +9,7 @@ import DocumentScreen from '../components/DocumentScreen';
 import EntryDialog from '../components/EntryDialog';
 import InfoModal from '../components/InfoModal';
 import { PRIVACY_POLICY, TERMS_OF_SERVICE } from '../data/policyContent';
+import { requestNotificationPermissions } from '../notifications/setup';
 import { useHealth } from '../store/healthStore';
 import { exportAllData } from '../storage/storage';
 import { glow, radius, spacing } from '../theme/theme';
@@ -140,6 +141,19 @@ export default function ProfileScreen() {
     setGoalSheet(null);
   };
 
+  const handleToggleReminders = async (v) => {
+    updateSettings({ remindersEnabled: v });
+    if (!v) return;
+    const granted = await requestNotificationPermissions();
+    if (!granted) {
+      Alert.alert(
+        'Notifications are off',
+        'Rhythm needs notification permission to send reminders. Enable it for Rhythm in your device Settings.',
+        [{ text: 'Cancel', style: 'cancel' }, { text: 'Open Settings', onPress: () => Linking.openSettings() }]
+      );
+    }
+  };
+
   const handleExport = async () => {
     const data = await exportAllData();
     Alert.alert(
@@ -238,7 +252,7 @@ export default function ProfileScreen() {
             right={
               <Switch
                 value={settings.remindersEnabled}
-                onValueChange={(v) => updateSettings({ remindersEnabled: v })}
+                onValueChange={handleToggleReminders}
                 trackColor={{ true: colors.primary, false: colors.line }}
                 thumbColor={colors.ink}
               />

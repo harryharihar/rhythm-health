@@ -38,6 +38,13 @@
         {
           "NSHealthShareUsageDescription": "Rhythm reads heart rate, exercise minutes, and sleep data from Health to show them on your dashboard. This data never leaves your device."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#2FEFAA"
+        }
       ]
     ]
   }
