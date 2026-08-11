@@ -109,6 +109,8 @@ async function runMigrations(db) {
   await addColumnIfMissing(db, 'profile', 'proteinGoalG', 'REAL');
   await addColumnIfMissing(db, 'profile', 'carbsGoalG', 'REAL');
   await addColumnIfMissing(db, 'profile', 'fatsGoalG', 'REAL');
+  await addColumnIfMissing(db, 'profile', 'bedtimeGoal', 'TEXT');
+  await addColumnIfMissing(db, 'profile', 'wakeTimeGoal', 'TEXT');
 }
 
 async function addColumnIfMissing(db, table, column, sqlType) {
@@ -139,6 +141,8 @@ export const DEFAULT_PROFILE = {
     proteinGoalG: 120,
     carbsGoalG: 220,
     fatsGoalG: 70,
+    bedtimeGoal: null, // "HH:mm" 24h, e.g. "23:00" — null until the user sets one (in Profile or from the first Sleep log)
+    wakeTimeGoal: null,
   },
   createdAt: null,
 };
@@ -159,6 +163,8 @@ function rowToProfile(row) {
       proteinGoalG: row.proteinGoalG ?? DEFAULT_PROFILE.goals.proteinGoalG,
       carbsGoalG: row.carbsGoalG ?? DEFAULT_PROFILE.goals.carbsGoalG,
       fatsGoalG: row.fatsGoalG ?? DEFAULT_PROFILE.goals.fatsGoalG,
+      bedtimeGoal: row.bedtimeGoal ?? null,
+      wakeTimeGoal: row.wakeTimeGoal ?? null,
     },
     createdAt: row.createdAt,
   };
@@ -175,14 +181,15 @@ export async function saveProfile(profile) {
   const withTimestamp = { ...profile, createdAt: profile.createdAt || new Date().toISOString() };
   const g = withTimestamp.goals || DEFAULT_PROFILE.goals;
   await db.runAsync(
-    `INSERT INTO profile (id, name, age, heightCm, weightKg, targetWeightKg, gender, stepsGoal, waterGoalMl, sleepGoalHours, calorieGoal, proteinGoalG, carbsGoalG, fatsGoalG, createdAt)
-     VALUES (1, $name, $age, $heightCm, $weightKg, $targetWeightKg, $gender, $stepsGoal, $waterGoalMl, $sleepGoalHours, $calorieGoal, $proteinGoalG, $carbsGoalG, $fatsGoalG, $createdAt)
+    `INSERT INTO profile (id, name, age, heightCm, weightKg, targetWeightKg, gender, stepsGoal, waterGoalMl, sleepGoalHours, calorieGoal, proteinGoalG, carbsGoalG, fatsGoalG, bedtimeGoal, wakeTimeGoal, createdAt)
+     VALUES (1, $name, $age, $heightCm, $weightKg, $targetWeightKg, $gender, $stepsGoal, $waterGoalMl, $sleepGoalHours, $calorieGoal, $proteinGoalG, $carbsGoalG, $fatsGoalG, $bedtimeGoal, $wakeTimeGoal, $createdAt)
      ON CONFLICT(id) DO UPDATE SET
        name = excluded.name, age = excluded.age, heightCm = excluded.heightCm, weightKg = excluded.weightKg,
        targetWeightKg = excluded.targetWeightKg, gender = excluded.gender, stepsGoal = excluded.stepsGoal,
        waterGoalMl = excluded.waterGoalMl, sleepGoalHours = excluded.sleepGoalHours,
        calorieGoal = excluded.calorieGoal, proteinGoalG = excluded.proteinGoalG,
-       carbsGoalG = excluded.carbsGoalG, fatsGoalG = excluded.fatsGoalG, createdAt = excluded.createdAt`,
+       carbsGoalG = excluded.carbsGoalG, fatsGoalG = excluded.fatsGoalG,
+       bedtimeGoal = excluded.bedtimeGoal, wakeTimeGoal = excluded.wakeTimeGoal, createdAt = excluded.createdAt`,
     {
       $name: withTimestamp.name,
       $age: withTimestamp.age,
@@ -197,6 +204,8 @@ export async function saveProfile(profile) {
       $proteinGoalG: g.proteinGoalG ?? DEFAULT_PROFILE.goals.proteinGoalG,
       $carbsGoalG: g.carbsGoalG ?? DEFAULT_PROFILE.goals.carbsGoalG,
       $fatsGoalG: g.fatsGoalG ?? DEFAULT_PROFILE.goals.fatsGoalG,
+      $bedtimeGoal: g.bedtimeGoal ?? null,
+      $wakeTimeGoal: g.wakeTimeGoal ?? null,
       $createdAt: withTimestamp.createdAt,
     }
   );

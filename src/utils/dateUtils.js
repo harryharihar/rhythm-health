@@ -151,3 +151,70 @@ export function formatRelativeTime(isoTimestamp) {
   if (diffDays < 7) return `${diffDays} days ago`;
   return then.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
+
+// ---------- Bedtime/wake-time goal helpers ----------
+// Goals and logged bedtime/wake time are stored as 24h "HH:mm" strings
+// (e.g. "23:00") so they're reliably comparable — free-text time entry can't
+// be math'd against a goal, which is what makes the auto on-time/quality
+// checks in the Sleep screen possible.
+
+export function formatClockLabel(hhmm) {
+  if (!hhmm) return null;
+  const [h, m] = hhmm.split(':').map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+// 8:00 PM through 2:00 AM, 30-minute steps.
+export function bedtimeOptions() {
+  const times = [];
+  for (let h = 20; h <= 26; h++) {
+    for (const m of [0, 30]) {
+      const hhmm = `${String(h % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      times.push({ value: hhmm, label: formatClockLabel(hhmm) });
+    }
+  }
+  return times;
+}
+
+// 4:00 AM through 10:00 AM, 30-minute steps.
+export function wakeTimeOptions() {
+  const times = [];
+  for (let h = 4; h <= 10; h++) {
+    for (const m of [0, 30]) {
+      const hhmm = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      times.push({ value: hhmm, label: formatClockLabel(hhmm) });
+    }
+  }
+  return times;
+}
+
+// Minutes from `actualHHMM` to `goalHHMM` as times-of-day, wrapped to the
+// shorter direction across midnight (so 11:50 PM vs 12:10 AM reads as 20
+// minutes late, not ~23h40 early). Positive = actual is later than goal.
+export function clockDiffMinutes(actualHHMM, goalHHMM) {
+  if (!actualHHMM || !goalHHMM) return null;
+  const toMin = (hhmm) => {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+  };
+  let diff = toMin(actualHHMM) - toMin(goalHHMM);
+  if (diff > 12 * 60) diff -= 24 * 60;
+  if (diff < -12 * 60) diff += 24 * 60;
+  return diff;
+}
+
+// Duration in hours (1 decimal) from bedtime to wake time, both "HH:mm"
+// 24h — assumes wake time is the next calendar day if it's not later than
+// bedtime (the normal case: sleep 23:00, wake 07:00 next morning).
+export function hoursBetweenClockTimes(bedtimeHHMM, wakeTimeHHMM) {
+  if (!bedtimeHHMM || !wakeTimeHHMM) return null;
+  const toMin = (hhmm) => {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+  };
+  let diffMin = toMin(wakeTimeHHMM) - toMin(bedtimeHHMM);
+  if (diffMin <= 0) diffMin += 24 * 60;
+  return Math.round((diffMin / 60) * 10) / 10;
+}

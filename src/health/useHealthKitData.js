@@ -5,7 +5,8 @@ import {
   fetchActiveEnergyKcal,
   fetchExerciseMinutes,
   fetchHeartRateSummary,
-  fetchSleepStages,
+  fetchLastNightSleep,
+  fetchSleepHistory,
   isHealthKitAvailable,
   requestHealthKitPermissions,
 } from './healthkit';
@@ -16,7 +17,8 @@ const initialState = {
   heartRate: null, // { bpm, restingBpm }
   exerciseMinutes: null,
   activeEnergyKcal: null,
-  sleepStages: null, // { deepHours, lightHours, remHours, awakeHours }
+  sleepStages: null, // { deepHours, lightHours, remHours, awakeHours, totalHours, bedtime, wakeTime }
+  sleepHistory: [], // [{ dateKey, totalHours, deepHours, lightHours, remHours, awakeHours, bedtime, wakeTime }]
 };
 
 // Requests HealthKit permission once, then loads today's data. Call `refresh`
@@ -36,13 +38,14 @@ export function useHealthKitData() {
       return;
     }
     await requestHealthKitPermissions();
-    const [heartRate, exerciseMinutes, activeEnergyKcal, sleepStages] = await Promise.all([
+    const [heartRate, exerciseMinutes, activeEnergyKcal, sleepStages, sleepHistory] = await Promise.all([
       fetchHeartRateSummary(),
       fetchExerciseMinutes(),
       fetchActiveEnergyKcal(),
-      fetchSleepStages(),
+      fetchLastNightSleep(),
+      fetchSleepHistory(7),
     ]);
-    setState({ available: true, loading: false, heartRate, exerciseMinutes, activeEnergyKcal, sleepStages });
+    setState({ available: true, loading: false, heartRate, exerciseMinutes, activeEnergyKcal, sleepStages, sleepHistory });
   }, []);
 
   // Fires on mount (the screen is focused when it first renders) and again

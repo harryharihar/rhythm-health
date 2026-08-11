@@ -111,7 +111,7 @@ export default function HomeScreen() {
       <LinearGradient colors={[colors.primaryGlow, 'transparent']} style={styles.ambient} pointerEvents="none" />
       <ScrollView style={styles.flex} contentContainerStyle={styles.container}>
         <View style={styles.headerRow}>
-          <View>
+          <View style={styles.headerTextWrap}>
             <Text style={styles.greeting}>{greeting()}{profile?.name ? `, ${profile.name}` : ''}</Text>
             <Text style={styles.date}>{formatFriendlyDate()}</Text>
           </View>
@@ -284,6 +284,7 @@ const makeStyles = (colors) =>
     ambient: { position: 'absolute', top: 0, left: 0, right: 0, height: 320 },
     container: { padding: spacing.lg, paddingTop: 60, paddingBottom: 40 },
     headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.lg },
+    headerTextWrap: { flex: 1, marginRight: spacing.md },
     greeting: { fontSize: 22, fontWeight: '800', color: colors.ink, letterSpacing: -0.4 },
     date: { fontSize: 12.5, color: colors.inkSoft, marginTop: 3, fontWeight: '500' },
     avatar: {
@@ -293,6 +294,7 @@ const makeStyles = (colors) =>
       backgroundColor: colors.primary,
       alignItems: 'center',
       justifyContent: 'center',
+      flexShrink: 0,
     },
     avatarText: { color: colors.onAccent, fontWeight: '800', fontSize: 15 },
 

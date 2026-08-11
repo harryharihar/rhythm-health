@@ -1,9 +1,23 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Dimensions, Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { radius, shadow, spacing } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
+
+// Expo SDK 54's mandatory Android edge-to-edge mode makes how much
+// windowSoftInputMode="adjustResize" actually shrinks the window inconsistent
+// — sometimes it accounts for the keyboard fully, sometimes partially,
+// sometimes not at all, depending on the device. Padding the sheet by the
+// OS-reported keyboard height unconditionally either leaves it hidden behind
+// the keyboard (if the window already resized) or floating with a gap above
+// it (if padding stacks on top of a resize that already happened) — both
+// were observed on this device. So instead of trusting either mechanism
+// blindly, we measure the window's height right before the keyboard opens
+// and compare it to the height once it's up: the difference is exactly how
+// much the OS already compensated, and only the shortfall (if any) gets
+// added as extra padding, however this device's adjustResize behaves.
+const SheetScroll = Platform.OS === 'android' ? ScrollView : KeyboardAwareScrollView;
 
 // Deliberately NOT using RN's <Modal>: on Android in particular, Modal opens a
 // separate native window, and the first tap after the soft keyboard is up gets
@@ -25,8 +39,33 @@ export default function QuickAddSheet({ visible, title, options, accentColor, on
   const accent = accentColor || colors.primary;
   const styles = useMemo(() => makeStyles(colors, accent), [colors, accent]);
   const [rendered, setRendered] = useState(visible);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const translateY = useRef(new Animated.Value(40)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
+  const restWindowHeight = useRef(Dimensions.get('window').height);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
+      const reportedHeight = e.endCoordinates?.height || 0;
+      const currentWindowHeight = Dimensions.get('window').height;
+      const alreadyShrunk = Math.max(0, restWindowHeight.current - currentWindowHeight);
+      // endCoordinates.height measures ~91dp taller than the keyboard's real
+      // visible top edge on this device (measured empirically), leaving a gap
+      // of dimmed backdrop between the sheet and the keyboard without this.
+      const measuredOvershoot = 91;
+      const applied = Math.max(0, reportedHeight - alreadyShrunk - measuredOvershoot);
+      setKeyboardHeight(applied);
+    });
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      restWindowHeight.current = Dimensions.get('window').height;
+      setKeyboardHeight(0);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (visible) {
@@ -52,15 +91,13 @@ export default function QuickAddSheet({ visible, title, options, accentColor, on
       <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
       </Animated.View>
-      <View style={styles.sheetWrap} pointerEvents="box-none">
+      <View style={[styles.sheetWrap, keyboardHeight > 0 && { paddingBottom: keyboardHeight }]} pointerEvents="box-none">
         <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
-          <KeyboardAwareScrollView
+          <SheetScroll
             contentContainerStyle={StyleSheet.flatten(styles.sheetContent)}
-            enableOnAndroid
             keyboardShouldPersistTaps="handled"
-            extraScrollHeight={24}
-            keyboardOpeningTime={0}
             showsVerticalScrollIndicator={false}
+            {...(Platform.OS === 'ios' ? { extraScrollHeight: 24, keyboardOpeningTime: 0 } : {})}
           >
             <View style={styles.handle} />
             <Text style={styles.title}>{title}</Text>
@@ -91,7 +128,7 @@ export default function QuickAddSheet({ visible, title, options, accentColor, on
             <TouchableOpacity style={styles.cancel} onPress={onClose}>
               <Text style={styles.cancelLabel}>Cancel</Text>
             </TouchableOpacity>
-          </KeyboardAwareScrollView>
+          </SheetScroll>
         </Animated.View>
       </View>
     </View>

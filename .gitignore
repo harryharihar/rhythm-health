@@ -29,3 +29,6 @@ yarn-error.*
 # Env
 .env
 .env*.local
+
+# Local tool config
+.claude/

@@ -89,11 +89,36 @@ export async function fetchActiveEnergyKcal(date = new Date()) {
   }
 }
 
-// { deepHours, lightHours, remHours, awakeHours } for the most recent sleep
+// CategoryValueSleepAnalysis: inBed=0, asleep/asleepUnspecified=1, awake=2, asleepCore=3, asleepDeep=4, asleepREM=5
+function summarizeSleepSamples(samples) {
+  const totals = { deepHours: 0, lightHours: 0, remHours: 0, awakeHours: 0 };
+  let bedtime = null;
+  let wakeTime = null;
+  for (const s of samples) {
+    const start = new Date(s.startDate);
+    const end = new Date(s.endDate);
+    const hours = (end.getTime() - start.getTime()) / 3600000;
+    if (hours <= 0) continue;
+    if (s.value === 4) totals.deepHours += hours;
+    else if (s.value === 3 || s.value === 1) totals.lightHours += hours;
+    else if (s.value === 5) totals.remHours += hours;
+    else if (s.value === 2) totals.awakeHours += hours;
+    else continue; // inBed (0) samples overlap the asleep ones — skip to avoid double-counting duration
+    if (!bedtime || start < bedtime) bedtime = start;
+    if (!wakeTime || end > wakeTime) wakeTime = end;
+  }
+  const totalHours = totals.deepHours + totals.lightHours + totals.remHours;
+  if (totalHours <= 0) return null;
+  return { ...totals, totalHours, bedtime, wakeTime };
+}
+
+// Real bedtime/wake time/duration/stage split for the most recent sleep
 // session ending within the given window (defaults to the last 16 hours, to
-// catch a "last night" session read any time the next day). Returns null if
-// no sleep-analysis samples exist yet.
-export async function fetchSleepStages(windowHours = 16) {
+// catch "last night" read any time the next day) — sourced from whatever
+// already populated HealthKit's sleep data (Apple Watch, or "Track Sleep
+// with iPhone" motion/charging detection since iOS 16, or manual Health app
+// entry). Returns null if no sleep-analysis samples exist yet.
+export async function fetchLastNightSleep(windowHours = 16) {
   try {
     const endDate = new Date();
     const startDate = new Date(endDate.getTime() - windowHours * 3600 * 1000);
@@ -103,23 +128,58 @@ export async function fetchSleepStages(windowHours = 16) {
       filter: { date: { startDate, endDate } },
     });
     if (!samples || samples.length === 0) return null;
-
-    const totals = { deepHours: 0, lightHours: 0, remHours: 0, awakeHours: 0 };
-    for (const s of samples) {
-      const hours = (new Date(s.endDate).getTime() - new Date(s.startDate).getTime()) / 3600000;
-      if (hours <= 0) continue;
-      // CategoryValueSleepAnalysis: inBed=0, asleep/asleepUnspecified=1, awake=2, asleepCore=3, asleepDeep=4, asleepREM=5
-      if (s.value === 4) totals.deepHours += hours;
-      else if (s.value === 3 || s.value === 1) totals.lightHours += hours;
-      else if (s.value === 5) totals.remHours += hours;
-      else if (s.value === 2) totals.awakeHours += hours;
-    }
-    const totalAsleep = totals.deepHours + totals.lightHours + totals.remHours;
-    if (totalAsleep <= 0) return null;
-    return totals;
+    return summarizeSleepSamples(samples);
   } catch {
     return null;
   }
+}
+
+// One summarized session per night over the last `days` days, keyed by the
+// wake-up date (matching how Apple Health itself attributes a sleep session
+// to the morning you woke up). Used to auto-populate the Sleep Trend chart
+// and bedtime-consistency insight without asking the user to log anything.
+export async function fetchSleepHistory(days = 7) {
+  try {
+    const endDate = new Date();
+    const startDate = new Date(endDate.getTime() - (days + 1) * 24 * 3600 * 1000);
+    const samples = await queryCategorySamples('HKCategoryTypeIdentifierSleepAnalysis', {
+      limit: 0,
+      ascending: true,
+      filter: { date: { startDate, endDate } },
+    });
+    if (!samples || samples.length === 0) return [];
+
+    // Group into sessions: a gap of 2+ hours between consecutive samples
+    // starts a new night's session.
+    const sorted = [...samples].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+    const sessions = [];
+    let current = [];
+    let lastEnd = null;
+    for (const s of sorted) {
+      const start = new Date(s.startDate);
+      if (lastEnd && start.getTime() - lastEnd.getTime() > 2 * 3600 * 1000) {
+        if (current.length) sessions.push(current);
+        current = [];
+      }
+      current.push(s);
+      const end = new Date(s.endDate);
+      if (!lastEnd || end > lastEnd) lastEnd = end;
+    }
+    if (current.length) sessions.push(current);
+
+    return sessions
+      .map(summarizeSleepSamples)
+      .filter(Boolean)
+      .map((session) => ({ ...session, dateKey: toDateKey(session.wakeTime) }));
+  } catch {
+    return [];
+  }
+}
+
+function toDateKey(date) {
+  const d = new Date(date);
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
 }
 
 function dayBounds(date) {
