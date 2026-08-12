@@ -362,4 +362,19 @@ export const LABELS = {
     defCalorieTrendText: 'Net Intake averaged per day over the period you pick — the dashed line marks a balanced (0) day.',
     generalGuidanceNote: 'General guidance based on your own logged data — not medical advice.',
   },
+
+  notifications: {
+    waterTitle: 'Time to hydrate 💧',
+    waterBody: "Log a glass of water to stay on track for today's goal.",
+    mealBreakfastTitle: 'Breakfast reminder 🍳',
+    mealBreakfastBody: "Log your breakfast so today's calories stay on track.",
+    mealLunchTitle: 'Lunch reminder 🍱',
+    mealLunchBody: "Log your lunch so today's calories stay on track.",
+    mealDinnerTitle: 'Dinner reminder 🍽️',
+    mealDinnerBody: "Log your dinner so today's calories stay on track.",
+    sleepBedtimeTitle: 'Wind down time 🌙',
+    sleepBedtimeBody: "It's almost your bedtime goal — start winding down for the night.",
+    sleepLogTitle: 'How did you sleep? 😴',
+    sleepLogBody: "Log last night's sleep to keep your recovery index accurate.",
+  },
 };

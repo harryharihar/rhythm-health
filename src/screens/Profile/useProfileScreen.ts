@@ -75,9 +75,14 @@ export function useProfileScreen(colors: any) {
     setGoalSheet(null);
   };
 
-  const handleToggleReminders = async (v) => {
-    updateSettings({ remindersEnabled: v });
-    if (!v) return;
+  const handleToggleReminders = async (v: boolean) => {
+    if (!v) {
+      updateSettings({ remindersEnabled: false });
+      return;
+    }
+    // Request permission before persisting the toggle as "on" — otherwise a
+    // denied prompt leaves the switch showing enabled with nothing actually
+    // scheduled.
     const granted = await requestNotificationPermissions();
     if (!granted) {
       Alert.alert(
@@ -85,7 +90,9 @@ export function useProfileScreen(colors: any) {
         LABELS.profile.notificationsOffBody,
         [{ text: LABELS.common.cancel, style: 'cancel' }, { text: LABELS.profile.openSettings, onPress: () => Linking.openSettings() }]
       );
+      return;
     }
+    updateSettings({ remindersEnabled: true });
   };
 
   const handleExport = async () => {

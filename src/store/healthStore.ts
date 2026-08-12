@@ -17,6 +17,8 @@ import {
 import { isSameDay, todayKey } from '../utils/dateUtils';
 import { watchTodaySteps } from '../utils/pedometer';
 import { getStepsResetOffset, setStepsResetOffset } from '../utils/stepsOffset';
+import { hasNotificationPermission } from '../notifications/setup';
+import { cancelAllReminders, rescheduleAllReminders } from '../notifications/scheduler';
 import type { Meal, Profile, ProfileGoals, Settings, SleepLog, StepsLog, TodayTotals, WaterLog, WeightLog, Workout } from '../types/models';
 
 // Started by initialize() below; kept outside the store since it's a
@@ -127,6 +129,12 @@ export const useHealthStore = create<HealthState>()((set, get) => ({
     await get().loadAll();
     if (stopAutoSteps) stopAutoSteps();
     stopAutoSteps = watchTodaySteps(get().syncAutoSteps);
+    // Re-assert the schedule on every launch as a safety net — scheduled
+    // local notifications can be dropped by the OS (e.g. after a device
+    // reboot on Android), and this is cheap/idempotent either way.
+    if (get().settings.remindersEnabled && (await hasNotificationPermission())) {
+      await rescheduleAllReminders(get().profile);
+    }
   },
 
   teardown: () => {
@@ -148,6 +156,11 @@ export const useHealthStore = create<HealthState>()((set, get) => ({
     const base = get().profile || DEFAULT_PROFILE;
     const next = await saveProfile({ ...base, goals: { ...base.goals, ...goalsPatch } });
     set({ profile: next });
+    // Bedtime/wake goal changes shift when the sleep reminders should fire —
+    // re-schedule so they stay in sync, but only if reminders are actually on.
+    if (get().settings.remindersEnabled && (await hasNotificationPermission())) {
+      await rescheduleAllReminders(next);
+    }
     return next;
   },
 
@@ -155,6 +168,11 @@ export const useHealthStore = create<HealthState>()((set, get) => ({
     const next = { ...get().settings, ...patch };
     await saveSettings(next);
     set({ settings: next });
+    if (patch.remindersEnabled === true) {
+      if (await hasNotificationPermission()) await rescheduleAllReminders(get().profile);
+    } else if (patch.remindersEnabled === false) {
+      await cancelAllReminders();
+    }
     return next;
   },
 
@@ -228,6 +246,13 @@ export const useHealthStore = create<HealthState>()((set, get) => ({
       meals: [],
       autoStepsActive: false,
     });
+    // Bedtime/wake goals reset to defaults along with the rest of the
+    // profile — re-schedule so reminders don't keep firing at the old times.
+    if (DEFAULT_SETTINGS.remindersEnabled && (await hasNotificationPermission())) {
+      await rescheduleAllReminders(null);
+    } else {
+      await cancelAllReminders();
+    }
     await get().syncAutoSteps(get().rawStepsToday);
   },
 }));

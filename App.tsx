@@ -13,12 +13,13 @@ function Gate() {
   const colors = useThemeColors();
 
   useEffect(() => {
-    useHealthStore.getState().initialize();
+    // Android notification channels must exist before initialize() schedules
+    // any reminders against them, so this has to resolve first.
+    (async () => {
+      await initNotifications();
+      await useHealthStore.getState().initialize();
+    })();
     return () => useHealthStore.getState().teardown();
-  }, []);
-
-  useEffect(() => {
-    initNotifications();
   }, []);
 
   if (loading) {
