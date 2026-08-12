@@ -1,13 +1,21 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { radius, shadow, spacing } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
 
+interface InfoModalProps {
+  visible: boolean;
+  title?: string;
+  onClose: () => void;
+  children?: ReactNode;
+}
+
 // A centered, fading/scaling popover — deliberately NOT another bottom sheet,
 // so opening it from inside a QuickAddSheet doesn't stack two sheets and feel
 // like the same UI pattern fighting itself.
-export default function InfoModal({ visible, title, onClose, children }) {
+export default function InfoModal({ visible, title, onClose, children }: InfoModalProps) {
   const colors = useThemeColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const [rendered, setRendered] = useState(visible);
@@ -50,7 +58,7 @@ export default function InfoModal({ visible, title, onClose, children }) {
   );
 }
 
-const makeStyles = (colors) =>
+const makeStyles = (colors: any) =>
   StyleSheet.create({
     overlay: {
       ...StyleSheet.absoluteFillObject,

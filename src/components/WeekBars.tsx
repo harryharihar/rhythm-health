@@ -3,8 +3,21 @@ import { StyleSheet, Text, View } from 'react-native';
 import { glow, spacing } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
 
+interface WeekBarsDatum {
+  key: string;
+  label: string;
+  value: number;
+}
+
+interface WeekBarsProps {
+  data: WeekBarsDatum[];
+  color?: string;
+  trackColor?: string;
+  height?: number;
+}
+
 // data: [{ key, label, value }], each `value` already 0..max
-export default function WeekBars({ data, color, trackColor, height = 70 }) {
+export default function WeekBars({ data, color, trackColor, height = 70 }: WeekBarsProps) {
   const colors = useThemeColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const max = Math.max(1, ...data.map((d) => d.value));
@@ -45,7 +58,7 @@ export default function WeekBars({ data, color, trackColor, height = 70 }) {
   );
 }
 
-const makeStyles = (colors) =>
+const makeStyles = (colors: any) =>
   StyleSheet.create({
     row: {
       flexDirection: 'row',

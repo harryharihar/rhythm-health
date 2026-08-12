@@ -10,8 +10,22 @@ import { useThemeColors } from '../theme/useTheme';
 // WebView would only add a native dependency and a rebuild for no real
 // benefit; this gives the same reading experience with zero extra risk.
 //
+interface DocumentSection {
+  heading: string;
+  paragraphs?: string[];
+  bullets?: string[];
+}
+
+interface DocumentScreenProps {
+  visible: boolean;
+  title: string;
+  updatedLabel?: string;
+  sections: DocumentSection[];
+  onClose: () => void;
+}
+
 // `sections`: [{ heading, paragraphs?: string[], bullets?: string[] }]
-export default function DocumentScreen({ visible, title, updatedLabel, sections, onClose }) {
+export default function DocumentScreen({ visible, title, updatedLabel, sections, onClose }: DocumentScreenProps) {
   const colors = useThemeColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const [rendered, setRendered] = useState(visible);
@@ -67,7 +81,7 @@ export default function DocumentScreen({ visible, title, updatedLabel, sections,
   );
 }
 
-const makeStyles = (colors) =>
+const makeStyles = (colors: any) =>
   StyleSheet.create({
     overlay: {
       ...StyleSheet.absoluteFillObject,

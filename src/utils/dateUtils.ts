@@ -1,3 +1,5 @@
+type WeekdayFormat = 'long' | 'short' | 'narrow';
+
 export function todayKey(date = new Date()) {
   // YYYY-MM-DD in local time, used as the grouping key for "today" totals.
   const d = new Date(date);
@@ -26,7 +28,7 @@ export function greeting(date = new Date()) {
 
 // Returns the last `days` day-keys, oldest first, each with a short label (M, T, W...)
 // weekdayFormat: 'narrow' -> "M", 'short' -> "Mon"
-export function lastNDays(days = 7, weekdayFormat = 'narrow') {
+export function lastNDays(days = 7, weekdayFormat: WeekdayFormat = 'narrow') {
   const out = [];
   for (let i = days - 1; i >= 0; i -= 1) {
     const d = new Date();
@@ -40,7 +42,7 @@ export function lastNDays(days = 7, weekdayFormat = 'narrow') {
 }
 
 // Sums a numeric field from `logs` for each day in lastNDays(), for weekly bar charts.
-export function sumByDay(logs, days, field, weekdayFormat = 'narrow') {
+export function sumByDay(logs: any[], days: number, field: string, weekdayFormat: WeekdayFormat = 'narrow') {
   const buckets = lastNDays(days, weekdayFormat);
   return buckets.map((bucket) => {
     const total = logs
@@ -71,7 +73,7 @@ function startOfDay(d) {
 
 // `offsetDays` shifts the whole window back further (e.g. offsetDays=7 with
 // days=7 gives "last week" instead of "this week").
-export function dayBuckets(days = 7, offsetDays = 0, weekdayFormat = 'narrow') {
+export function dayBuckets(days = 7, offsetDays = 0, weekdayFormat: WeekdayFormat = 'narrow') {
   const out = [];
   const todayStart = startOfDay(new Date());
   for (let i = days - 1; i >= 0; i -= 1) {

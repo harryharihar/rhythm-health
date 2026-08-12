@@ -4,15 +4,16 @@
 // the app removes this data.
 
 import * as SQLite from 'expo-sqlite';
+import type { Meal, Profile, Settings, SleepLog, StepsLog, WaterLog, WeightLog, Workout } from '../types/models';
 
 // A single shared promise for the whole app, assigned synchronously on the
 // first call. Storage functions fire concurrently on startup (loadAll uses
 // Promise.all), so if this were assigned only after an await resolved, every
 // one of those concurrent calls would race past the check and each open its
 // own separate connection.
-let dbPromise = null;
+let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
-function getDb() {
+function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (!dbPromise) {
     dbPromise = SQLite.openDatabaseAsync('rhythm.db').then(async (db) => {
       await runMigrations(db);
@@ -22,7 +23,7 @@ function getDb() {
   return dbPromise;
 }
 
-async function runMigrations(db) {
+async function runMigrations(db: SQLite.SQLiteDatabase) {
   await db.execAsync(`
     PRAGMA journal_mode = WAL;
 
@@ -113,8 +114,8 @@ async function runMigrations(db) {
   await addColumnIfMissing(db, 'profile', 'wakeTimeGoal', 'TEXT');
 }
 
-async function addColumnIfMissing(db, table, column, sqlType) {
-  const cols = await db.getAllAsync(`PRAGMA table_info(${table})`);
+async function addColumnIfMissing(db: SQLite.SQLiteDatabase, table: string, column: string, sqlType: string) {
+  const cols = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${table})`);
   if (!cols.some((c) => c.name === column)) {
     await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${sqlType}`);
   }
@@ -126,7 +127,7 @@ function makeId() {
 
 // ---------- Profile ----------
 
-export const DEFAULT_PROFILE = {
+export const DEFAULT_PROFILE: Profile = {
   name: '',
   age: null,
   heightCm: null,
@@ -147,7 +148,7 @@ export const DEFAULT_PROFILE = {
   createdAt: null,
 };
 
-function rowToProfile(row) {
+function rowToProfile(row: any): Profile {
   return {
     name: row.name || '',
     age: row.age,
@@ -170,13 +171,13 @@ function rowToProfile(row) {
   };
 }
 
-export async function getProfile() {
+export async function getProfile(): Promise<Profile | null> {
   const db = await getDb();
-  const row = await db.getFirstAsync('SELECT * FROM profile WHERE id = 1');
+  const row = await db.getFirstAsync<any>('SELECT * FROM profile WHERE id = 1');
   return row ? rowToProfile(row) : null;
 }
 
-export async function saveProfile(profile) {
+export async function saveProfile(profile: Profile): Promise<Profile> {
   const db = await getDb();
   const withTimestamp = { ...profile, createdAt: profile.createdAt || new Date().toISOString() };
   const g = withTimestamp.goals || DEFAULT_PROFILE.goals;
@@ -214,11 +215,11 @@ export async function saveProfile(profile) {
 
 // ---------- Settings ----------
 
-export const DEFAULT_SETTINGS = { darkMode: true, remindersEnabled: true, notificationTime: '9:00 PM' };
+export const DEFAULT_SETTINGS: Settings = { darkMode: true, remindersEnabled: true, notificationTime: '9:00 PM' };
 
-export async function getSettings() {
+export async function getSettings(): Promise<Settings> {
   const db = await getDb();
-  const row = await db.getFirstAsync('SELECT * FROM settings WHERE id = 1');
+  const row = await db.getFirstAsync<any>('SELECT * FROM settings WHERE id = 1');
   if (!row) return DEFAULT_SETTINGS;
   return {
     darkMode: !!row.darkMode,
@@ -227,7 +228,7 @@ export async function getSettings() {
   };
 }
 
-export async function saveSettings(settings) {
+export async function saveSettings(settings: Settings): Promise<Settings> {
   const db = await getDb();
   await db.runAsync(
     `INSERT INTO settings (id, darkMode, remindersEnabled, notificationTime) VALUES (1, $darkMode, $remindersEnabled, $notificationTime)
@@ -243,19 +244,27 @@ export async function saveSettings(settings) {
 
 // ---------- Generic log table helpers (water / sleep / steps / weight) ----------
 
+export interface LogStore<T extends { id: string; timestamp: string }> {
+  all(): Promise<T[]>;
+  add(entry: Omit<T, 'id' | 'timestamp'>): Promise<T>;
+  remove(id: string): Promise<T[]>;
+  upsert(id: string, patch: Partial<Omit<T, 'id' | 'timestamp'>>): Promise<T>;
+  clear(): Promise<void>;
+}
+
 // `columns` lists the entry fields (besides id/timestamp) that this table stores.
-function logTable(table, columns) {
+function logTable<T extends { id: string; timestamp: string }>(table: string, columns: string[]): LogStore<T> {
   const allCols = ['id', 'timestamp', ...columns];
-  const toParams = (row) => Object.fromEntries(allCols.map((c) => [`$${c}`, row[c] ?? null]));
+  const toParams = (row: any) => Object.fromEntries(allCols.map((c) => [`$${c}`, row[c] ?? null]));
 
   return {
     async all() {
       const db = await getDb();
-      return db.getAllAsync(`SELECT * FROM ${table} ORDER BY timestamp DESC`);
+      return db.getAllAsync<T>(`SELECT * FROM ${table} ORDER BY timestamp DESC`);
     },
     async add(entry) {
       const db = await getDb();
-      const row = { id: makeId(), timestamp: new Date().toISOString(), ...entry };
+      const row = { id: makeId(), timestamp: new Date().toISOString(), ...entry } as unknown as T;
       await db.runAsync(
         `INSERT INTO ${table} (${allCols.join(', ')}) VALUES (${allCols.map((c) => `$${c}`).join(', ')})`,
         toParams(row)
@@ -271,8 +280,8 @@ function logTable(table, columns) {
     // Used for the auto-tracked step total, which has one entry per day.
     async upsert(id, patch) {
       const db = await getDb();
-      const existing = await db.getFirstAsync(`SELECT * FROM ${table} WHERE id = $id`, { $id: id });
-      const row = { ...(existing || {}), ...patch, id, timestamp: new Date().toISOString() };
+      const existing = await db.getFirstAsync<any>(`SELECT * FROM ${table} WHERE id = $id`, { $id: id });
+      const row = { ...(existing || {}), ...patch, id, timestamp: new Date().toISOString() } as T;
       const assignments = allCols.filter((c) => c !== 'id').map((c) => `${c} = excluded.${c}`).join(', ');
       await db.runAsync(
         `INSERT INTO ${table} (${allCols.join(', ')}) VALUES (${allCols.map((c) => `$${c}`).join(', ')})
@@ -288,12 +297,12 @@ function logTable(table, columns) {
   };
 }
 
-export const waterStore = logTable('water_logs', ['amountMl']);
-export const sleepStore = logTable('sleep_logs', ['hours', 'quality', 'bedtime', 'wakeTime']);
-export const stepsStore = logTable('steps_logs', ['count', 'source']);
-export const weightStore = logTable('weight_logs', ['weightKg']);
-export const workoutStore = logTable('workouts', ['type', 'durationMin', 'caloriesKcal', 'distanceKm']);
-export const mealStore = logTable('meals', ['mealType', 'name', 'caloriesKcal', 'proteinG', 'carbsG', 'fatsG']);
+export const waterStore = logTable<WaterLog>('water_logs', ['amountMl']);
+export const sleepStore = logTable<SleepLog>('sleep_logs', ['hours', 'quality', 'bedtime', 'wakeTime']);
+export const stepsStore = logTable<StepsLog>('steps_logs', ['count', 'source']);
+export const weightStore = logTable<WeightLog>('weight_logs', ['weightKg']);
+export const workoutStore = logTable<Workout>('workouts', ['type', 'durationMin', 'caloriesKcal', 'distanceKm']);
+export const mealStore = logTable<Meal>('meals', ['mealType', 'name', 'caloriesKcal', 'proteinG', 'carbsG', 'fatsG']);
 
 // ---------- Danger zone ----------
 

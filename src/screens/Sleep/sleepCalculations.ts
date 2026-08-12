@@ -32,6 +32,6 @@ export function bedtimeStatusFor(actualHHMM, goalHHMM) {
   const diff = clockDiffMinutes(actualHHMM, goalHHMM);
   if (diff == null) return null;
   if (Math.abs(diff) <= 15) return { label: LABELS.sleep.onTime, tone: 'positive' };
-  if (diff > 0) return { label: LABELS.sleep.minLate.replace('{n}', diff), tone: diff <= 45 ? 'neutral' : 'warning' };
-  return { label: LABELS.sleep.minEarly.replace('{n}', Math.abs(diff)), tone: 'positive' };
+  if (diff > 0) return { label: LABELS.sleep.minLate.replace('{n}', String(diff)), tone: diff <= 45 ? 'neutral' : 'warning' };
+  return { label: LABELS.sleep.minEarly.replace('{n}', String(Math.abs(diff))), tone: 'positive' };
 }

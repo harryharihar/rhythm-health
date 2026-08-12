@@ -5,6 +5,7 @@ import { estimateCaloriesFromSteps, groupWorkoutsByType } from '../../utils/heal
 import { FOOD_DATABASE } from '../../data/foodDatabase';
 import { LABELS } from '../../constants/labels';
 import { LOW_INTAKE_FLOOR_KCAL, MEAL_TYPES, RANGE_OPTIONS } from './nutritionCalculations';
+import { DEFAULT_PROFILE } from '../../storage/storage';
 
 // All state, derived data, and handlers for the Nutrition screen.
 export function useNutritionScreen(colors) {
@@ -33,7 +34,7 @@ export function useNutritionScreen(colors) {
   const [foodCategory, setFoodCategory] = useState(null);
   const [selectedFoods, setSelectedFoods] = useState([]);
 
-  const goals = profile?.goals || {};
+  const goals = profile?.goals || DEFAULT_PROFILE.goals;
   const calorieTarget = goals.calorieGoal || 2100;
   const macroColors = { protein: colors.steps, carbs: colors.primary, fats: colors.sleep };
 
@@ -100,10 +101,10 @@ export function useNutritionScreen(colors) {
   const intakeAdvisory = useMemo(() => {
     if (caloriesBurned < 50) return null;
     if (caloriesConsumed === 0) {
-      return { tone: 'warning', text: LABELS.nutrition.advisoryNoMealsLogged.replace('{burned}', caloriesBurned) };
+      return { tone: 'warning', text: LABELS.nutrition.advisoryNoMealsLogged.replace('{burned}', String(caloriesBurned)) };
     }
     if (caloriesConsumed < LOW_INTAKE_FLOOR_KCAL && netIntake < -400) {
-      return { tone: 'warning', text: LABELS.nutrition.advisoryLowIntake.replace('{consumed}', caloriesConsumed) };
+      return { tone: 'warning', text: LABELS.nutrition.advisoryLowIntake.replace('{consumed}', String(caloriesConsumed)) };
     }
     if (netIntake < -200) {
       return { tone: 'positive', text: LABELS.nutrition.advisoryHealthyDeficit };

@@ -37,7 +37,7 @@ export function useHomeScreen() {
     scorePct >= 85 ? LABELS.home.vitalityExcellent : scorePct >= 65 ? LABELS.home.vitalityGreat : scorePct >= 40 ? LABELS.home.vitalityGood : LABELS.home.vitalityBuilding;
 
   const vitalityNote = useMemo(() => {
-    const base = LABELS.home.vitalityNoteBase.replace('{pct}', scorePct);
+    const base = LABELS.home.vitalityNoteBase.replace('{pct}', String(scorePct));
     if (todayTotals.sleepHours >= goals.sleepGoalHours) return `${base} ${LABELS.home.vitalityReasonSleep}`;
     if (todayTotals.waterMl >= goals.waterGoalMl) return `${base} ${LABELS.home.vitalityReasonWater}`;
     if (todayTotals.stepsCount >= goals.stepsGoal) return `${base} ${LABELS.home.vitalityReasonSteps}`;

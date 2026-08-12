@@ -3,7 +3,14 @@ import { StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { radius, spacing } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
 
-export default function Pill({ label, onPress, color, soft }) {
+interface PillProps {
+  label: string;
+  onPress?: () => void;
+  color?: string;
+  soft?: string;
+}
+
+export default function Pill({ label, onPress, color, soft }: PillProps) {
   const colors = useThemeColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const resolvedColor = color || colors.primary;
@@ -20,7 +27,7 @@ export default function Pill({ label, onPress, color, soft }) {
   );
 }
 
-function withAlpha(rgbaOrHex, alpha) {
+function withAlpha(rgbaOrHex: string, alpha: number) {
   if (rgbaOrHex.startsWith('rgba')) return rgbaOrHex;
   const hex = rgbaOrHex.replace('#', '');
   const r = parseInt(hex.substring(0, 2), 16);
@@ -29,7 +36,7 @@ function withAlpha(rgbaOrHex, alpha) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-const makeStyles = () =>
+const makeStyles = (colors: any) =>
   StyleSheet.create({
     pill: {
       flex: 1,

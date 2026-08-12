@@ -112,7 +112,7 @@ export default function HomeScreen() {
             {workoutsByTypeToday.map((w) => (
               <View key={w.type} style={styles.breakdownRow}>
                 <View style={[styles.breakdownIcon, { backgroundColor: colors.stepsSoft }]}>
-                  <Ionicons name={iconForType(w.type)} size={16} color={colors.steps} />
+                  <Ionicons name={iconForType(w.type) as any} size={16} color={colors.steps} />
                 </View>
                 <Text style={styles.breakdownLabel}>{w.type}</Text>
                 <Text style={styles.breakdownValue}>

@@ -5,14 +5,23 @@ import { exportAllData } from '../../storage/storage';
 import { requestNotificationPermissions } from '../../notifications/setup';
 import { LABELS } from '../../constants/labels';
 import { bmiCategories, bmiCategoryFor, computeBmi, getDbSizeMb, getInitials, GOAL_META } from './profileCalculations';
+import type { Gender } from '../../types/models';
+
+interface EditFields {
+  name: string;
+  age: string;
+  gender: Gender;
+  heightCm: string;
+  weightKg: string;
+}
 
 // All state, derived data, and handlers for the Profile screen.
-export function useProfileScreen(colors) {
+export function useProfileScreen(colors: any) {
   const { profile, settings, updateProfile, updateGoals, updateSettings, resetAllData } = useHealth();
   const dbSizeMb = useMemo(getDbSizeMb, []);
 
   const [editOpen, setEditOpen] = useState(false);
-  const [editFields, setEditFields] = useState({ name: '', age: '', gender: 'unspecified', heightCm: '', weightKg: '' });
+  const [editFields, setEditFields] = useState<EditFields>({ name: '', age: '', gender: 'unspecified', heightCm: '', weightKg: '' });
   const [goalSheet, setGoalSheet] = useState(null); // 'steps' | 'water' | 'sleep' | null
   const [goalValue, setGoalValue] = useState('');
   const [timeSheetOpen, setTimeSheetOpen] = useState(false);
@@ -84,12 +93,12 @@ export function useProfileScreen(colors) {
     Alert.alert(
       LABELS.profile.exportPreviewTitle,
       LABELS.profile.exportPreviewBody
-        .replace('{water}', data.water.length)
-        .replace('{sleep}', data.sleep.length)
-        .replace('{steps}', data.steps.length)
-        .replace('{weight}', data.weight.length)
-        .replace('{workouts}', data.workouts.length)
-        .replace('{meals}', data.meals.length)
+        .replace('{water}', String(data.water.length))
+        .replace('{sleep}', String(data.sleep.length))
+        .replace('{steps}', String(data.steps.length))
+        .replace('{weight}', String(data.weight.length))
+        .replace('{workouts}', String(data.workouts.length))
+        .replace('{meals}', String(data.meals.length))
     );
   };
 

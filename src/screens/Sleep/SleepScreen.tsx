@@ -151,7 +151,7 @@ export default function SleepScreen() {
         <Card>
           <View style={styles.cardHeaderRow}>
             <Text style={styles.sectionTitle}>{LABELS.sleep.sleepTrend}</Text>
-            <Text style={styles.caption}>{LABELS.sleep.target.replace('{goal}', goal)}</Text>
+            <Text style={styles.caption}>{LABELS.sleep.target.replace('{goal}', String(goal))}</Text>
           </View>
           <Sparkline
             data={weekData.map((d) => d.value || 0.1)}
@@ -276,7 +276,7 @@ export default function SleepScreen() {
         {STAGE_INFO.map((s) => (
           <View key={s.key} style={styles.phaseInfoRow}>
             <View style={[styles.phaseInfoIconWrap, { backgroundColor: colors.sleepSoft }]}>
-              <Ionicons name={s.icon} size={16} color={colors.sleep} />
+              <Ionicons name={s.icon as any} size={16} color={colors.sleep} />
             </View>
             <View style={styles.phaseInfoTextWrap}>
               <Text style={styles.phaseInfoLabel}>{s.label}</Text>

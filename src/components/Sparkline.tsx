@@ -4,6 +4,17 @@ import Svg, { Circle, Line, Polyline } from 'react-native-svg';
 // Minimal line chart: given an array of numbers, draws a single polyline
 // scaled to fit width x height, with optional point dots and a dashed
 // horizontal reference line (e.g. a goal/target value).
+interface SparklineProps {
+  data: number[];
+  width?: number;
+  height?: number;
+  color?: string;
+  strokeWidth?: number;
+  dots?: boolean;
+  refValue?: number | null;
+  refColor?: string;
+}
+
 export default function Sparkline({
   data,
   width = 120,
@@ -13,7 +24,7 @@ export default function Sparkline({
   dots = false,
   refValue = null,
   refColor,
-}) {
+}: SparklineProps) {
   if (!data || data.length < 2) return null;
 
   const values = refValue != null ? [...data, refValue] : data;
@@ -23,7 +34,7 @@ export default function Sparkline({
   const stepX = width / (data.length - 1);
   const pad = strokeWidth + (dots ? 3 : 0);
 
-  const toY = (v) => pad + (1 - (v - min) / range) * (height - pad * 2);
+  const toY = (v: number) => pad + (1 - (v - min) / range) * (height - pad * 2);
 
   const points = data.map((v, i) => `${i * stepX},${toY(v)}`).join(' ');
 

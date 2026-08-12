@@ -82,8 +82,15 @@ export function estimateCaloriesPerKm(type, weightKg = 70) {
 
 // Sums a list of workout log entries per type, so each logged type (Run,
 // Cycle, ...) can be shown as its own row instead of one blended total.
-export function groupWorkoutsByType(workoutEntries) {
-  const map = {};
+interface WorkoutTypeTotal {
+  type: string;
+  durationMin: number;
+  caloriesKcal: number;
+  distanceKm: number;
+}
+
+export function groupWorkoutsByType(workoutEntries: any[]): WorkoutTypeTotal[] {
+  const map: Record<string, WorkoutTypeTotal> = {};
   for (const w of workoutEntries) {
     if (!map[w.type]) map[w.type] = { type: w.type, durationMin: 0, caloriesKcal: 0, distanceKm: 0 };
     map[w.type].durationMin += w.durationMin || 0;

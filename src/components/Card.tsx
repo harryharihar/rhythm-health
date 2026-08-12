@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { radius, shadow, spacing } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
@@ -11,7 +13,14 @@ import { useThemeColors } from '../theme/useTheme';
 // `contentStyle` controls how the card's own children are laid out
 // (flexDirection, alignItems, gap) — they're different concerns because
 // `children` render two levels deeper than the outer wrapper.
-export default function Card({ children, style, contentStyle, glassy = true }) {
+interface CardProps {
+  children?: ReactNode;
+  style?: StyleProp<ViewStyle>;
+  contentStyle?: StyleProp<ViewStyle>;
+  glassy?: boolean;
+}
+
+export default function Card({ children, style, contentStyle, glassy = true }: CardProps) {
   const colors = useThemeColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
@@ -32,7 +41,7 @@ export default function Card({ children, style, contentStyle, glassy = true }) {
   );
 }
 
-const makeStyles = (colors) =>
+const makeStyles = (colors: any) =>
   StyleSheet.create({
     shadowWrap: {
       borderRadius: radius.lg,

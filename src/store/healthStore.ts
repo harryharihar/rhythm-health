@@ -17,12 +17,42 @@ import {
 import { isSameDay, todayKey } from '../utils/dateUtils';
 import { watchTodaySteps } from '../utils/pedometer';
 import { getStepsResetOffset, setStepsResetOffset } from '../utils/stepsOffset';
+import type { Meal, Profile, ProfileGoals, Settings, SleepLog, StepsLog, TodayTotals, WaterLog, WeightLog, Workout } from '../types/models';
 
 // Started by initialize() below; kept outside the store since it's a
 // subscription handle, not app state.
-let stopAutoSteps = null;
+let stopAutoSteps: (() => void) | null = null;
 
-function computeTodayTotals(state) {
+export interface HealthState {
+  loading: boolean;
+  profile: Profile | null;
+  settings: Settings;
+  water: WaterLog[];
+  sleep: SleepLog[];
+  steps: StepsLog[];
+  weight: WeightLog[];
+  workouts: Workout[];
+  meals: Meal[];
+  autoStepsActive: boolean;
+  rawStepsToday: number;
+
+  loadAll: () => Promise<void>;
+  initialize: () => Promise<void>;
+  teardown: () => void;
+  updateProfile: (patch: Partial<Profile>) => Promise<Profile>;
+  updateGoals: (goalsPatch: Partial<ProfileGoals>) => Promise<Profile>;
+  updateSettings: (patch: Partial<Settings>) => Promise<Settings>;
+  addWater: (amountMl: number) => Promise<void>;
+  addSleep: (entry: { hours: number; quality: number; bedtime: string | null; wakeTime: string | null }) => Promise<void>;
+  addSteps: (count: number) => Promise<void>;
+  addWeight: (weightKg: number) => Promise<void>;
+  addWorkout: (entry: { type: string; durationMin: number; caloriesKcal: number; distanceKm: number | null }) => Promise<void>;
+  addMeal: (entry: { mealType: string; name: string; caloriesKcal: number; proteinG: number; carbsG: number; fatsG: number }) => Promise<void>;
+  syncAutoSteps: (rawCount: number) => Promise<void>;
+  resetAllData: () => Promise<void>;
+}
+
+function computeTodayTotals(state: HealthState): TodayTotals {
   const today = todayKey();
   const waterMl = state.water
     .filter((e) => isSameDay(e.timestamp, today))
@@ -63,7 +93,7 @@ function computeTodayTotals(state) {
   };
 }
 
-export const useHealthStore = create((set, get) => ({
+export const useHealthStore = create<HealthState>()((set, get) => ({
   loading: true,
   profile: null,
   settings: DEFAULT_SETTINGS,

@@ -1,10 +1,28 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Animated, Dimensions, Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { radius, shadow, spacing } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
 import { LABELS } from '../constants/labels';
+import type { IconName } from '../types/models';
+
+interface QuickAddOption {
+  label: string;
+  icon?: IconName;
+  active?: boolean;
+  onPress: () => void;
+}
+
+interface QuickAddSheetProps {
+  visible: boolean;
+  title?: string;
+  options?: QuickAddOption[];
+  accentColor?: string;
+  onClose: () => void;
+  children?: ReactNode;
+}
 
 // Expo SDK 54's mandatory Android edge-to-edge mode makes how much
 // windowSoftInputMode="adjustResize" actually shrinks the window inconsistent
@@ -35,7 +53,7 @@ const SheetScroll = Platform.OS === 'android' ? ScrollView : KeyboardAwareScroll
 // `options` items: { label, icon?, active?, onPress }. With 3+ options they
 // lay out as a wrapping icon grid instead of a stacked list; `accentColor`
 // (defaults to the app's primary) colors the icon chips and the active state.
-export default function QuickAddSheet({ visible, title, options, accentColor, onClose, children }) {
+export default function QuickAddSheet({ visible, title, options, accentColor, onClose, children }: QuickAddSheetProps) {
   const colors = useThemeColors();
   const accent = accentColor || colors.primary;
   const styles = useMemo(() => makeStyles(colors, accent), [colors, accent]);
@@ -136,7 +154,7 @@ export default function QuickAddSheet({ visible, title, options, accentColor, on
   );
 }
 
-const makeStyles = (colors, accent) =>
+const makeStyles = (colors: any, accent: string) =>
   StyleSheet.create({
     overlay: {
       ...StyleSheet.absoluteFillObject,

@@ -90,10 +90,10 @@ export default function ActivityScreen() {
               {hasWorkoutsInRange
                 ? LABELS.activity.heroDescWithWorkouts
                     .replace('{steps}', avgPerDay.toLocaleString())
-                    .replace('{activeMin}', avgActiveMinPerDay)
+                    .replace('{activeMin}', String(avgActiveMinPerDay))
                     .replace('{range}', range.label.toLowerCase())
-                    .replace('{pct}', movePct)
-                : LABELS.activity.heroDescStepsOnly.replace('{pct}', movePct).replace('{range}', range.label.toLowerCase())}
+                    .replace('{pct}', String(movePct))
+                : LABELS.activity.heroDescStepsOnly.replace('{pct}', String(movePct)).replace('{range}', range.label.toLowerCase())}
             </Text>
           </View>
         </Card>
@@ -137,7 +137,7 @@ export default function ActivityScreen() {
             {workoutsByTypeToday.map((w) => (
               <View key={w.type} style={styles.breakdownRow}>
                 <View style={[styles.breakdownIcon, { backgroundColor: colors.stepsSoft }]}>
-                  <Ionicons name={iconForType(w.type)} size={16} color={colors.steps} />
+                  <Ionicons name={iconForType(w.type) as any} size={16} color={colors.steps} />
                 </View>
                 <Text style={styles.breakdownLabel}>{w.type}</Text>
                 <Text style={styles.breakdownValue}>
@@ -198,7 +198,7 @@ export default function ActivityScreen() {
             <Card key={w.id} style={i === recentWorkouts.length - 1 ? styles.lastCard : undefined}>
               <View style={styles.workoutRow}>
                 <View style={[styles.workoutIcon, { backgroundColor: colors.stepsSoft }]}>
-                  <Ionicons name={iconForType(w.type)} size={18} color={colors.steps} />
+                  <Ionicons name={iconForType(w.type) as any} size={18} color={colors.steps} />
                 </View>
                 <View style={styles.workoutText}>
                   <Text style={styles.workoutTitle}>{w.type}</Text>
@@ -271,7 +271,7 @@ export default function ActivityScreen() {
                     onPress={() => setWorkoutType(t.label)}
                   >
                     <View style={[styles.typeChipIconWrap, active && styles.typeChipIconWrapActive]}>
-                      <Ionicons name={t.icon} size={16} color={active ? colors.onAccent : colors.steps} />
+                      <Ionicons name={t.icon as any} size={16} color={active ? colors.onAccent : colors.steps} />
                     </View>
                     <Text style={[styles.typeChipText, active && styles.typeChipTextActive]}>{t.label}</Text>
                   </TouchableOpacity>
@@ -341,7 +341,7 @@ export default function ActivityScreen() {
           WORKOUT_TYPES.map((t) => (
             <View key={t.label} style={styles.typeInfoRow}>
               <View style={styles.typeInfoIconWrap}>
-                <Ionicons name={t.icon} size={16} color={colors.steps} />
+                <Ionicons name={t.icon as any} size={16} color={colors.steps} />
               </View>
               <View style={styles.typeInfoTextWrap}>
                 <Text style={styles.typeInfoLabel}>{t.label}</Text>
@@ -357,7 +357,7 @@ export default function ActivityScreen() {
               <Text style={styles.sheetInfoText}>
                 {LABELS.activity.calorieFormulaIntro}{' '}
                 {todayTotals.latestWeight
-                  ? LABELS.activity.calorieFormulaWithWeight.replace('{weight}', Math.round(todayTotals.latestWeight))
+                  ? LABELS.activity.calorieFormulaWithWeight.replace('{weight}', String(Math.round(todayTotals.latestWeight)))
                   : LABELS.activity.calorieFormulaDefaultWeight}
               </Text>
             </View>
@@ -365,7 +365,7 @@ export default function ActivityScreen() {
               <View key={row.label} style={styles.metRow}>
                 <View style={styles.metRowHead}>
                   <View style={styles.metIconWrap}>
-                    <Ionicons name={row.icon} size={14} color={colors.steps} />
+                    <Ionicons name={row.icon as any} size={14} color={colors.steps} />
                   </View>
                   <Text style={styles.metLabel}>{row.label}</Text>
                   <Text style={styles.metValue}>~{row.per30Min} kcal / 30min</Text>
@@ -374,7 +374,7 @@ export default function ActivityScreen() {
                   <View style={[styles.metBarFill, { width: `${(row.met / maxMet) * 100}%` }]} />
                 </View>
                 <Text style={styles.metSubValue}>
-                  MET {row.met}{row.perKm ? ` · ${LABELS.activity.perKmAtPace.replace('{perKm}', row.perKm)}` : ''}
+                  MET {row.met}{row.perKm ? ` · ${LABELS.activity.perKmAtPace.replace('{perKm}', String(row.perKm))}` : ''}
                 </Text>
               </View>
             ))}
@@ -386,7 +386,7 @@ export default function ActivityScreen() {
         visible={rangeOpen}
         title={LABELS.activity.timePeriodTitle}
         accentColor={colors.steps}
-        options={RANGE_OPTIONS.map((r) => ({ label: r.label, icon: r.icon, active: r.key === rangeKey, onPress: () => setRangeKey(r.key) }))}
+        options={RANGE_OPTIONS.map((r) => ({ label: r.label, icon: r.icon as any, active: r.key === rangeKey, onPress: () => setRangeKey(r.key) }))}
         onClose={() => setRangeOpen(false)}
       >
         <View style={styles.sheetInfoRow}>

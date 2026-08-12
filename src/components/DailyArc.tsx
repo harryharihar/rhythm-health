@@ -9,6 +9,17 @@ const R = 65;
 const ARC_LENGTH = Math.PI * R; // length of a semicircle with radius R
 const D = 'M10,80 A65,65 0 0 1 140,80';
 
+interface DailyArcProps {
+  progress?: number;
+  color?: string;
+  glowColor?: string;
+  trackColor?: string;
+  label?: string;
+  value: string | number;
+  suffix?: string;
+  icon?: string;
+}
+
 export default function DailyArc({
   progress = 0,
   color,
@@ -18,7 +29,7 @@ export default function DailyArc({
   value,
   suffix,
   icon,
-}) {
+}: DailyArcProps) {
   const colors = useThemeColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const resolvedColor = color || colors.primary;
@@ -74,7 +85,7 @@ export default function DailyArc({
   );
 }
 
-function withAlpha(rgbaOrHex, alpha) {
+function withAlpha(rgbaOrHex: string, alpha: number) {
   if (rgbaOrHex.startsWith('rgba')) return rgbaOrHex;
   const hex = rgbaOrHex.replace('#', '');
   const r = parseInt(hex.substring(0, 2), 16);
@@ -83,7 +94,7 @@ function withAlpha(rgbaOrHex, alpha) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-const makeStyles = (colors) =>
+const makeStyles = (colors: any) =>
   StyleSheet.create({
     shadowWrap: {
       borderRadius: radius.xl,

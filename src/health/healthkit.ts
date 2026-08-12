@@ -35,7 +35,7 @@ export async function isHealthKitAvailable() {
 
 export async function requestHealthKitPermissions() {
   try {
-    await requestAuthorization({ toRead: READ_TYPES });
+    await requestAuthorization({ toRead: READ_TYPES as any });
     return true;
   } catch {
     return false;
@@ -151,7 +151,7 @@ export async function fetchSleepHistory(days = 7) {
 
     // Group into sessions: a gap of 2+ hours between consecutive samples
     // starts a new night's session.
-    const sorted = [...samples].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+    const sorted = [...samples].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
     const sessions = [];
     let current = [];
     let lastEnd = null;

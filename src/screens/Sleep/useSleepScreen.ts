@@ -92,9 +92,9 @@ export function useSleepScreen() {
     };
     const values = bedtimes.map(minutesOfDay);
     const spread = Math.max(...values) - Math.min(...values);
-    if (spread <= 15) return { tone: 'positive', text: LABELS.sleep.consistencyExcellent.replace('{spread}', spread) };
-    if (spread <= 45) return { tone: 'neutral', text: LABELS.sleep.consistencyGood.replace('{spread}', spread) };
-    return { tone: 'warning', text: LABELS.sleep.consistencyWarning.replace('{spread}', spread) };
+    if (spread <= 15) return { tone: 'positive', text: LABELS.sleep.consistencyExcellent.replace('{spread}', String(spread)) };
+    if (spread <= 45) return { tone: 'neutral', text: LABELS.sleep.consistencyGood.replace('{spread}', String(spread)) };
+    return { tone: 'warning', text: LABELS.sleep.consistencyWarning.replace('{spread}', String(spread)) };
   }, [hk.sleepHistory]);
 
   // Auto-suggests a quality rating from real signals (how close bedtime was
@@ -179,7 +179,7 @@ export function useSleepScreen() {
     // First-ever logged time becomes the Profile goal automatically; once a
     // goal exists, logging here never overwrites it — Profile stays the
     // source of truth going forward, edit it there to change the goal.
-    const goalPatch = {};
+    const goalPatch: { bedtimeGoal?: string; wakeTimeGoal?: string } = {};
     if (bedtimeValue && !bedtimeGoal) goalPatch.bedtimeGoal = bedtimeValue;
     if (wakeTimeValue && !wakeTimeGoal) goalPatch.wakeTimeGoal = wakeTimeValue;
     if (Object.keys(goalPatch).length) updateGoals(goalPatch);

@@ -3,7 +3,14 @@ import { StyleSheet, Text, View } from 'react-native';
 import { spacing } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
 
-export default function ScreenHeader({ eyebrow, title, subtitle, accent }) {
+interface ScreenHeaderProps {
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  accent?: string;
+}
+
+export default function ScreenHeader({ eyebrow, title, subtitle, accent }: ScreenHeaderProps) {
   const colors = useThemeColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const resolvedAccent = accent || colors.primary;
@@ -22,7 +29,7 @@ export default function ScreenHeader({ eyebrow, title, subtitle, accent }) {
   );
 }
 
-const makeStyles = (colors) =>
+const makeStyles = (colors: any) =>
   StyleSheet.create({
     wrap: {
       marginBottom: spacing.lg,

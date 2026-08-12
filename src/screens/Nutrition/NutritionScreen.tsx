@@ -13,8 +13,19 @@ import { LABELS } from '../../constants/labels';
 import { iconForMeal, MEAL_TYPES, RANGE_OPTIONS } from './nutritionCalculations';
 import { useNutritionScreen } from './useNutritionScreen';
 import { makeStyles } from './NutritionScreen.styles';
+import type { IconName } from '../../types/models';
 
-function MacroField({ styles, colors, icon, iconColor, label, value, onChangeText }) {
+interface MacroFieldProps {
+  styles: any;
+  colors: any;
+  icon: IconName;
+  iconColor?: string;
+  label: string;
+  value: string;
+  onChangeText: (v: string) => void;
+}
+
+function MacroField({ styles, colors, icon, iconColor, label, value, onChangeText }: MacroFieldProps) {
   return (
     <View style={styles.macroField}>
       <View style={styles.macroFieldHead}>
@@ -214,7 +225,7 @@ export default function NutritionScreen() {
             <Card key={meal.id}>
               <View style={styles.mealRow}>
                 <View style={[styles.mealIcon, { backgroundColor: colors.stepsSoft }]}>
-                  <Ionicons name={iconForMeal(meal.mealType)} size={18} color={colors.steps} />
+                  <Ionicons name={iconForMeal(meal.mealType) as any} size={18} color={colors.steps} />
                 </View>
                 <View style={styles.mealText}>
                   <Text style={styles.mealTitle}>{meal.mealType}</Text>
@@ -282,7 +293,7 @@ export default function NutritionScreen() {
                   style={[styles.typeChip, mealType === t.label && styles.typeChipActive]}
                   onPress={() => setMealType(t.label)}
                 >
-                  <Ionicons name={t.icon} size={14} color={mealType === t.label ? colors.steps : colors.inkSoft} />
+                  <Ionicons name={t.icon as any} size={14} color={mealType === t.label ? colors.steps : colors.inkSoft} />
                   <Text style={[styles.typeChipText, mealType === t.label && styles.typeChipTextActive]}>{t.label}</Text>
                 </TouchableOpacity>
               ))}
@@ -403,9 +414,9 @@ export default function NutritionScreen() {
                 {selectedFoods.length === 0
                   ? LABELS.nutrition.selectFoodsToAdd
                   : LABELS.nutrition.addItemsSummary
-                      .replace('{n}', selectedFoods.length)
+                      .replace('{n}', String(selectedFoods.length))
                       .replace('{s}', selectedFoods.length > 1 ? 's' : '')
-                      .replace('{kcal}', selectedFoodsTotals.caloriesKcal)}
+                      .replace('{kcal}', String(selectedFoodsTotals.caloriesKcal))}
               </Text>
             </TouchableOpacity>
           </>
@@ -474,7 +485,7 @@ export default function NutritionScreen() {
         visible={rangeOpen}
         title={LABELS.activity.timePeriodTitle}
         accentColor={colors.steps}
-        options={RANGE_OPTIONS.map((r) => ({ label: r.label, icon: r.icon, active: r.key === rangeKey, onPress: () => setRangeKey(r.key) }))}
+        options={RANGE_OPTIONS.map((r) => ({ label: r.label, icon: r.icon as any, active: r.key === rangeKey, onPress: () => setRangeKey(r.key) }))}
         onClose={() => setRangeOpen(false)}
       >
         <View style={styles.sheetInfoRow}>

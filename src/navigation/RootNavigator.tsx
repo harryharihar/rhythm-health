@@ -16,7 +16,7 @@ import { LABELS } from '../constants/labels';
 
 const Tab = createBottomTabNavigator();
 
-const ICONS = {
+const ICONS: Record<string, string> = {
   Home: 'home',
   Activity: 'pulse',
   Nutrition: 'nutrition',
@@ -24,10 +24,18 @@ const ICONS = {
   Profile: 'person',
 };
 
-function TabIcon({ name, focused, accent, onAccent, color }) {
+interface TabIconProps {
+  name: string;
+  focused: boolean;
+  accent: string;
+  onAccent: string;
+  color: string;
+}
+
+function TabIcon({ name, focused, accent, onAccent, color }: TabIconProps) {
   return (
     <View style={[styles.iconWrap, focused && { backgroundColor: accent }, focused && glow(accent, 8, 0.5)]}>
-      <Ionicons name={focused ? ICONS[name] : `${ICONS[name]}-outline`} size={18} color={focused ? onAccent : color} />
+      <Ionicons name={(focused ? ICONS[name] : `${ICONS[name]}-outline`) as any} size={18} color={focused ? onAccent : color} />
     </View>
   );
 }
@@ -60,6 +68,7 @@ export default function RootNavigator() {
   return (
     <NavigationContainer theme={navTheme}>
       <Tab.Navigator
+        id={undefined}
         screenOptions={({ route }) => ({
           headerShown: false,
           tabBarActiveTintColor: tabAccent[route.name],

@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +15,7 @@ import { LABELS } from '../../constants/labels';
 import { APP_VERSION, genderLabel, NOTIFICATION_TIME_OPTIONS } from './profileCalculations';
 import { useProfileScreen } from './useProfileScreen';
 import { makeStyles } from './ProfileScreen.styles';
+import type { IconName } from '../../types/models';
 
 export default function ProfileScreen() {
   const colors = useThemeColors();
@@ -114,7 +116,7 @@ export default function ProfileScreen() {
             right={
               <Switch
                 value={settings.darkMode}
-                onValueChange={(v) => updateSettings({ darkMode: v })}
+                onValueChange={(v) => { updateSettings({ darkMode: v }); }}
                 trackColor={{ true: colors.primary, false: colors.line }}
                 thumbColor={colors.ink}
               />
@@ -357,9 +359,9 @@ export default function ProfileScreen() {
         accentColor={colors.primary}
         options={NOTIFICATION_TIME_OPTIONS.map((t) => ({
           label: t.label,
-          icon: t.icon,
+          icon: t.icon as IconName,
           active: t.label === settings.notificationTime,
-          onPress: () => updateSettings({ notificationTime: t.label }),
+          onPress: () => { updateSettings({ notificationTime: t.label }); },
         }))}
         onClose={() => setTimeSheetOpen(false)}
       />
@@ -409,7 +411,14 @@ export default function ProfileScreen() {
   );
 }
 
-function LabeledField({ label, styles, children }) {
+interface LabeledFieldProps {
+  label: string;
+  styles: any;
+  colors?: any;
+  children?: ReactNode;
+}
+
+function LabeledField({ label, styles, children }: LabeledFieldProps) {
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -418,7 +427,18 @@ function LabeledField({ label, styles, children }) {
   );
 }
 
-function QuickStat({ icon, value, unit, label, styles, colors, info, onPress }) {
+interface QuickStatProps {
+  icon: IconName;
+  value: string | number;
+  unit?: string;
+  label: string;
+  styles: any;
+  colors: any;
+  info?: boolean;
+  onPress?: () => void;
+}
+
+function QuickStat({ icon, value, unit, label, styles, colors, info, onPress }: QuickStatProps) {
   const inner = (
     <>
       <Ionicons name={icon} size={13} color={colors.inkSoft} style={styles.quickStatIcon} />
@@ -440,7 +460,14 @@ function QuickStat({ icon, value, unit, label, styles, colors, info, onPress }) 
   );
 }
 
-function SectionLabel({ icon, text, styles, colors }) {
+interface SectionLabelProps {
+  icon: IconName;
+  text: string;
+  styles: any;
+  colors: any;
+}
+
+function SectionLabel({ icon, text, styles, colors }: SectionLabelProps) {
   return (
     <View style={styles.sectionLabelRow}>
       <Ionicons name={icon} size={13} color={colors.inkSoft} />
@@ -449,7 +476,22 @@ function SectionLabel({ icon, text, styles, colors }) {
   );
 }
 
-function SettingRow({ styles, colors, icon, iconColor, iconBg, label, subtitle, value, right, danger, last, onPress }) {
+interface SettingRowProps {
+  styles: any;
+  colors: any;
+  icon: IconName;
+  iconColor?: string;
+  iconBg?: string;
+  label: string;
+  subtitle?: string;
+  value?: string | number;
+  right?: ReactNode;
+  danger?: boolean;
+  last?: boolean;
+  onPress?: () => void;
+}
+
+function SettingRow({ styles, colors, icon, iconColor, iconBg, label, subtitle, value, right, danger, last, onPress }: SettingRowProps) {
   const content = (
     <View style={[styles.settingRow, last && styles.noBorder]}>
       <View style={[styles.rowIconWrap, { backgroundColor: iconBg || colors.primarySoft }]}>

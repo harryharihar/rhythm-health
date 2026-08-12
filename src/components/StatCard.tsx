@@ -3,6 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { glow, radius, shadow, spacing } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
+import type { IconName } from '../types/models';
 
 // `icon` opts into the badge layout (icon chip + label/value stacked to its
 // right), matching the dashboard reference. Omit it to get the original
@@ -11,7 +12,17 @@ import { useThemeColors } from '../theme/useTheme';
 // wrapping it in a second flex box) — nesting two `flexBasis: '48%'` grid
 // items breaks the sizing of the inner one, which is what caused the stray
 // white box artifact behind pressable stat cards.
-export default function StatCard({ dotColor, icon, label, value, unit, caption, onPress }) {
+interface StatCardProps {
+  dotColor?: string;
+  icon?: IconName;
+  label: string;
+  value: string | number;
+  unit?: string;
+  caption?: string;
+  onPress?: () => void;
+}
+
+export default function StatCard({ dotColor, icon, label, value, unit, caption, onPress }: StatCardProps) {
   const colors = useThemeColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const Wrapper = onPress ? TouchableOpacity : View;
@@ -49,7 +60,7 @@ export default function StatCard({ dotColor, icon, label, value, unit, caption, 
   );
 }
 
-const makeStyles = (colors) =>
+const makeStyles = (colors: any) =>
   StyleSheet.create({
     stat: {
       flexBasis: '48%',

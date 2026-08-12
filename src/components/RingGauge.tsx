@@ -6,6 +6,17 @@ import { useThemeColors } from '../theme/useTheme';
 // Full-circle progress ring with centered value/label text — used for the Home
 // hero score and the small Water Intake ring. Distinct from DailyArc (a
 // semicircle gauge used on the metric detail screens).
+interface RingGaugeProps {
+  progress?: number;
+  size?: number;
+  strokeWidth?: number;
+  color?: string;
+  trackColor?: string;
+  centerTop?: string;
+  centerValue?: string | number;
+  centerLabel?: string;
+}
+
 export default function RingGauge({
   progress = 0,
   size = 110,
@@ -15,7 +26,7 @@ export default function RingGauge({
   centerTop,
   centerValue,
   centerLabel,
-}) {
+}: RingGaugeProps) {
   const colors = useThemeColors();
   const resolvedColor = color || colors.primary;
   const resolvedTrack = trackColor || colors.line;

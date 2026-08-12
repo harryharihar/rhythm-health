@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useHealth } from '../../store/healthStore';
+import { DEFAULT_PROFILE } from '../../storage/storage';
+import type { Gender } from '../../types/models';
 
 export function useOnboardingScreen() {
   const { updateProfile } = useHealth();
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
-  const [gender, setGender] = useState('unspecified');
+  const [gender, setGender] = useState<Gender>('unspecified');
   const [heightCm, setHeightCm] = useState('');
   const [weightKg, setWeightKg] = useState('');
   const [saving, setSaving] = useState(false);
@@ -22,7 +24,7 @@ export function useOnboardingScreen() {
       heightCm: Number(heightCm),
       weightKg: Number(weightKg),
       targetWeightKg: Number(weightKg),
-      goals: { stepsGoal: 10000, waterGoalMl: 2500, sleepGoalHours: 8 },
+      goals: { ...DEFAULT_PROFILE.goals, stepsGoal: 10000, waterGoalMl: 2500, sleepGoalHours: 8 },
     });
     setSaving(false);
   };

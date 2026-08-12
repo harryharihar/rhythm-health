@@ -1,8 +1,28 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { radius, shadow, spacing } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
+import type { IconName } from '../types/models';
+
+interface EntryDialogOption {
+  label: string;
+  icon?: IconName;
+  active?: boolean;
+  onPress: () => void;
+}
+
+interface EntryDialogProps {
+  visible: boolean;
+  title?: string;
+  description?: string;
+  options?: EntryDialogOption[];
+  accentColor?: string;
+  onClose: () => void;
+  children?: ReactNode;
+  footer?: ReactNode;
+}
 
 // A centered dialog for entering or picking a single value (a goal number, a
 // time, a short form) — deliberately NOT a bottom sheet. A sheet anchors
@@ -19,7 +39,7 @@ import { useThemeColors } from '../theme/useTheme';
 // icon grid (same shape QuickAddSheet uses) for picker-style entries.
 // `footer` renders pinned below the scrollable content (e.g. a Save button),
 // so it never scrolls out of reach on longer forms.
-export default function EntryDialog({ visible, title, description, options, accentColor, onClose, children, footer }) {
+export default function EntryDialog({ visible, title, description, options, accentColor, onClose, children, footer }: EntryDialogProps) {
   const colors = useThemeColors();
   const accent = accentColor || colors.primary;
   const styles = useMemo(() => makeStyles(colors, accent), [colors, accent]);
@@ -98,7 +118,7 @@ export default function EntryDialog({ visible, title, description, options, acce
   );
 }
 
-const makeStyles = (colors, accent) =>
+const makeStyles = (colors: any, accent: string) =>
   StyleSheet.create({
     overlay: {
       ...StyleSheet.absoluteFillObject,
