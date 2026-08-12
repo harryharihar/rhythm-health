@@ -1,26 +1,18 @@
 import React, { useMemo } from 'react';
-import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import RingGauge from '../components/RingGauge';
-import Sparkline from '../components/Sparkline';
-import StatCard from '../components/StatCard';
-import Card from '../components/Card';
-import WeekBars from '../components/WeekBars';
-import { useHealth } from '../store/healthStore';
-import { useHealthKitData } from '../health/useHealthKitData';
-import { spacing } from '../theme/theme';
-import { useThemeColors } from '../theme/useTheme';
-import { formatFriendlyDate, formatHoursMinutes, greeting, sumByDay } from '../utils/dateUtils';
-import { estimateCaloriesFromSteps, estimateDistanceKm, groupWorkoutsByType, iconForType } from '../utils/healthCalculations';
-import { LABELS } from '../constants/labels';
-
-const HEART_RATE_INFO = Platform.OS === 'ios' ? LABELS.home.heartRateInfoIOS : LABELS.home.heartRateInfoAndroid;
-
-// Typical adult sleep-stage proportions, applied to the real logged total —
-// the total is real data, the stage split is an estimate (no sleep-stage
-// sensor exists), used only for the Sleep Analysis preview on Home.
-const SLEEP_STAGE_RATIOS = { deep: 0.24, light: 0.53, rem: 0.2, awake: 0.03 };
+import RingGauge from '../../components/RingGauge';
+import Sparkline from '../../components/Sparkline';
+import StatCard from '../../components/StatCard';
+import Card from '../../components/Card';
+import WeekBars from '../../components/WeekBars';
+import { useThemeColors } from '../../theme/useTheme';
+import { formatFriendlyDate, formatHoursMinutes, greeting } from '../../utils/dateUtils';
+import { iconForType } from '../../utils/healthCalculations';
+import { LABELS } from '../../constants/labels';
+import { useHomeScreen } from './useHomeScreen';
+import { makeStyles } from './HomeScreen.styles';
 
 function withAlpha(hex, alpha) {
   const h = hex.replace('#', '');
@@ -31,73 +23,40 @@ function withAlpha(hex, alpha) {
 }
 
 export default function HomeScreen() {
-  const { profile, todayTotals, steps, weight, addWater } = useHealth();
   const colors = useThemeColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const hk = useHealthKitData();
+  const {
+    profile,
+    todayTotals,
+    hk,
+    heartRateAvailable,
+    heartRateInfo,
+    activeMinutes,
+    goals,
+    initials,
+    overallProgress,
+    scorePct,
+    vitalityLabel,
+    vitalityNote,
+    weekSteps,
+    dailyAvgPct,
+    calories,
+    stepsCaloriesToday,
+    distanceKm,
+    stepsDistanceToday,
+    workoutsByTypeToday,
+    caloriesCaption,
+    distanceCaption,
+    sleepHours,
+    sleepStages,
+    fillPct,
+    waterLitres,
+    waterGoalLitres,
+    weightValues,
+    weightDelta,
+    addWater,
+  } = useHomeScreen();
 
-  const heartRateAvailable = hk.heartRate?.bpm != null;
-  const activeMinutes = hk.exerciseMinutes ?? todayTotals.activeMinutes;
-
-  const goals = profile?.goals || { stepsGoal: 10000, waterGoalMl: 2500, sleepGoalHours: 8 };
-  const initials = (profile?.name || '?').trim().slice(0, 2).toUpperCase();
-
-  const overallProgress = useMemo(() => {
-    const p1 = Math.min(1, todayTotals.stepsCount / goals.stepsGoal);
-    const p2 = Math.min(1, todayTotals.waterMl / goals.waterGoalMl);
-    const p3 = Math.min(1, todayTotals.sleepHours / goals.sleepGoalHours);
-    return Math.round(((p1 + p2 + p3) / 3) * 100) / 100;
-  }, [todayTotals, goals]);
-  const scorePct = Math.round(overallProgress * 100);
-
-  const vitalityLabel =
-    scorePct >= 85 ? LABELS.home.vitalityExcellent : scorePct >= 65 ? LABELS.home.vitalityGreat : scorePct >= 40 ? LABELS.home.vitalityGood : LABELS.home.vitalityBuilding;
-
-  const vitalityNote = useMemo(() => {
-    const base = LABELS.home.vitalityNoteBase.replace('{pct}', scorePct);
-    if (todayTotals.sleepHours >= goals.sleepGoalHours) return `${base} ${LABELS.home.vitalityReasonSleep}`;
-    if (todayTotals.waterMl >= goals.waterGoalMl) return `${base} ${LABELS.home.vitalityReasonWater}`;
-    if (todayTotals.stepsCount >= goals.stepsGoal) return `${base} ${LABELS.home.vitalityReasonSteps}`;
-    return `${base} ${LABELS.home.vitalityReasonDefault}`;
-  }, [scorePct, todayTotals, goals]);
-
-  const weekSteps = useMemo(() => sumByDay(steps, 7, 'count'), [steps]);
-  const dailyAvgPct = useMemo(() => {
-    const avg = weekSteps.reduce((acc, d) => acc + d.value, 0) / weekSteps.length;
-    return Math.round((avg / goals.stepsGoal) * 100);
-  }, [weekSteps, goals]);
-
-  const stepsCaloriesToday = estimateCaloriesFromSteps(todayTotals.stepsCount);
-  const workoutCaloriesToday = todayTotals.workoutCaloriesKcal || 0;
-  const calories = stepsCaloriesToday + workoutCaloriesToday;
-
-  const stepsDistanceToday = estimateDistanceKm(todayTotals.stepsCount);
-  const workoutDistanceToday = todayTotals.workoutDistanceKm || 0;
-  const distanceKm = Math.round((stepsDistanceToday + workoutDistanceToday) * 10) / 10;
-
-  const workoutsByTypeToday = useMemo(() => groupWorkoutsByType(todayTotals.todayWorkouts), [todayTotals.todayWorkouts]);
-  const caloriesCaption = workoutCaloriesToday > 0 ? `Steps + ${workoutsByTypeToday.map((w) => w.type).join(', ')}` : null;
-  const distanceCaption =
-    workoutDistanceToday > 0 ? `Steps + ${workoutsByTypeToday.filter((w) => w.distanceKm > 0).map((w) => w.type).join(', ')}` : null;
-
-  const sleepHours = todayTotals.sleepHours || 0;
-  const sleepStages = hk.sleepStages
-    ? { deep: hk.sleepStages.deepHours, light: hk.sleepStages.lightHours, rem: hk.sleepStages.remHours, awake: hk.sleepStages.awakeHours }
-    : sleepHours > 0
-    ? {
-        deep: sleepHours * SLEEP_STAGE_RATIOS.deep,
-        light: sleepHours * SLEEP_STAGE_RATIOS.light,
-        rem: sleepHours * SLEEP_STAGE_RATIOS.rem,
-        awake: sleepHours * SLEEP_STAGE_RATIOS.awake,
-      }
-    : null;
-
-  const fillPct = Math.max(0, Math.min(1, todayTotals.waterMl / goals.waterGoalMl));
-  const waterLitres = (todayTotals.waterMl / 1000).toFixed(1);
-  const waterGoalLitres = (goals.waterGoalMl / 1000).toFixed(1);
-
-  const weightValues = useMemo(() => weight.slice(0, 7).slice().reverse().map((w) => w.weightKg), [weight]);
-  const weightDelta = weightValues.length >= 2 ? weightValues[weightValues.length - 1] - weightValues[0] : null;
   const deltaColor = weightDelta == null ? colors.inkSoft : weightDelta < 0 ? colors.primary : weightDelta > 0 ? colors.steps : colors.inkSoft;
 
   return (
@@ -171,7 +130,7 @@ export default function HomeScreen() {
                 <Ionicons name="heart" size={16} color={colors.danger} />
                 <Text style={styles.sectionTitle}>{LABELS.home.heartRateTitle}</Text>
               </View>
-              <TouchableOpacity onPress={() => Alert.alert(LABELS.home.heartRateInfoTitle, HEART_RATE_INFO)} hitSlop={8}>
+              <TouchableOpacity onPress={() => Alert.alert(LABELS.home.heartRateInfoTitle, heartRateInfo)} hitSlop={8}>
                 <Ionicons name="information-circle-outline" size={18} color={colors.inkSoft} />
               </TouchableOpacity>
             </View>
@@ -271,87 +230,3 @@ function SleepLegendItem({ styles, color, label, value }) {
     </View>
   );
 }
-
-const makeStyles = (colors) =>
-  StyleSheet.create({
-    flex: { flex: 1, backgroundColor: colors.bg },
-    ambient: { position: 'absolute', top: 0, left: 0, right: 0, height: 320 },
-    container: { padding: spacing.lg, paddingTop: 60, paddingBottom: 40 },
-    headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.lg },
-    headerTextWrap: { flex: 1, marginRight: spacing.md },
-    greeting: { fontSize: 22, fontWeight: '800', color: colors.ink, letterSpacing: -0.4 },
-    date: { fontSize: 12.5, color: colors.inkSoft, marginTop: 3, fontWeight: '500' },
-    avatar: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    },
-    avatarText: { color: colors.onAccent, fontWeight: '800', fontSize: 15 },
-
-    heroCard: { flexDirection: 'row', alignItems: 'center' },
-    heroText: { flex: 1, marginLeft: spacing.md },
-    heroTitle: { fontSize: 16, fontWeight: '800', color: colors.ink, marginBottom: 4 },
-    heroDesc: { fontSize: 12.5, color: colors.inkSoft, lineHeight: 18 },
-
-    grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-
-    cardHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
-    titleWithIcon: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    sectionTitle: { fontSize: 15, fontWeight: '800', color: colors.ink },
-    breakdownTitle: { fontSize: 15, fontWeight: '800', color: colors.ink, marginBottom: spacing.sm },
-    breakdownRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
-    breakdownIcon: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: 10,
-    },
-    breakdownLabel: { fontSize: 13.5, fontWeight: '700', color: colors.ink, marginRight: 6 },
-    breakdownAutoTag: {
-      fontSize: 9.5,
-      fontWeight: '700',
-      color: colors.inkSoft,
-      backgroundColor: colors.border,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 999,
-      overflow: 'hidden',
-    },
-    breakdownValue: { flex: 1, fontSize: 12, fontWeight: '600', color: colors.inkSoft, textAlign: 'right' },
-    caption: { fontSize: 11.5, color: colors.inkSoft, fontWeight: '600' },
-
-    heartRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    heartValue: { fontSize: 28, fontWeight: '800', color: colors.ink, fontVariant: ['tabular-nums'] },
-    heartUnit: { fontSize: 13, fontWeight: '600', color: colors.inkSoft },
-    sourceCaption: { fontSize: 10.5, color: colors.inkFaint, fontWeight: '600', marginTop: 6 },
-
-    sleepBar: { flexDirection: 'row', height: 10, borderRadius: 5, overflow: 'hidden', gap: 2 },
-    sleepSeg: { height: '100%' },
-    sleepLegend: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing.md, gap: spacing.md },
-    legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-    legendDot: { width: 6, height: 6, borderRadius: 3 },
-    legendLabel: { fontSize: 11, color: colors.inkSoft, fontWeight: '600' },
-    legendValue: { fontSize: 11, color: colors.ink, fontWeight: '700' },
-    empty: { fontSize: 13, color: colors.inkSoft },
-
-    bottomRow: { flexDirection: 'row', gap: spacing.md },
-    bottomCard: { flex: 1 },
-    waterRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-    waterText: { flex: 1 },
-    bigValue: { fontSize: 18, fontWeight: '800', color: colors.ink, marginTop: spacing.xs },
-    addBtn: {
-      backgroundColor: colors.waterSoft,
-      borderRadius: 999,
-      paddingVertical: 9,
-      alignItems: 'center',
-      marginTop: spacing.md,
-    },
-    addBtnLabel: { color: colors.water, fontWeight: '700', fontSize: 12.5 },
-    sparklineWrap: { marginTop: spacing.sm },
-  });

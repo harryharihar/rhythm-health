@@ -4,11 +4,11 @@ import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import HomeScreen from '../screens/HomeScreen';
-import ActivityScreen from '../screens/ActivityScreen';
-import NutritionScreen from '../screens/NutritionScreen';
-import SleepScreen from '../screens/SleepScreen';
-import ProfileScreen from '../screens/ProfileScreen';
+import HomeScreen from '../screens/Home/HomeScreen';
+import ActivityScreen from '../screens/Activity/ActivityScreen';
+import NutritionScreen from '../screens/Nutrition/NutritionScreen';
+import SleepScreen from '../screens/Sleep/SleepScreen';
+import ProfileScreen from '../screens/Profile/ProfileScreen';
 import { glow } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
 import { useHealthStore } from '../store/healthStore';

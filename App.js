@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useHealth, useHealthStore } from './src/store/healthStore';
 import RootNavigator from './src/navigation/RootNavigator';
-import OnboardingScreen from './src/screens/OnboardingScreen';
+import OnboardingScreen from './src/screens/Onboarding/OnboardingScreen';
 import { useThemeColors } from './src/theme/useTheme';
 import { initNotifications } from './src/notifications/setup';
 

@@ -1,0 +1,86 @@
+import { StyleSheet } from 'react-native';
+import { spacing } from '../../theme/theme';
+
+export const makeStyles = (colors) =>
+  StyleSheet.create({
+    flex: { flex: 1, backgroundColor: colors.bg },
+    ambient: { position: 'absolute', top: 0, left: 0, right: 0, height: 320 },
+    container: { padding: spacing.lg, paddingTop: 60, paddingBottom: 40 },
+    headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.lg },
+    headerTextWrap: { flex: 1, marginRight: spacing.md },
+    greeting: { fontSize: 22, fontWeight: '800', color: colors.ink, letterSpacing: -0.4 },
+    date: { fontSize: 12.5, color: colors.inkSoft, marginTop: 3, fontWeight: '500' },
+    avatar: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    },
+    avatarText: { color: colors.onAccent, fontWeight: '800', fontSize: 15 },
+
+    heroCard: { flexDirection: 'row', alignItems: 'center' },
+    heroText: { flex: 1, marginLeft: spacing.md },
+    heroTitle: { fontSize: 16, fontWeight: '800', color: colors.ink, marginBottom: 4 },
+    heroDesc: { fontSize: 12.5, color: colors.inkSoft, lineHeight: 18 },
+
+    grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+
+    cardHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
+    titleWithIcon: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    sectionTitle: { fontSize: 15, fontWeight: '800', color: colors.ink },
+    breakdownTitle: { fontSize: 15, fontWeight: '800', color: colors.ink, marginBottom: spacing.sm },
+    breakdownRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
+    breakdownIcon: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 10,
+    },
+    breakdownLabel: { fontSize: 13.5, fontWeight: '700', color: colors.ink, marginRight: 6 },
+    breakdownAutoTag: {
+      fontSize: 9.5,
+      fontWeight: '700',
+      color: colors.inkSoft,
+      backgroundColor: colors.border,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 999,
+      overflow: 'hidden',
+    },
+    breakdownValue: { flex: 1, fontSize: 12, fontWeight: '600', color: colors.inkSoft, textAlign: 'right' },
+    caption: { fontSize: 11.5, color: colors.inkSoft, fontWeight: '600' },
+
+    heartRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    heartValue: { fontSize: 28, fontWeight: '800', color: colors.ink, fontVariant: ['tabular-nums'] },
+    heartUnit: { fontSize: 13, fontWeight: '600', color: colors.inkSoft },
+    sourceCaption: { fontSize: 10.5, color: colors.inkFaint, fontWeight: '600', marginTop: 6 },
+
+    sleepBar: { flexDirection: 'row', height: 10, borderRadius: 5, overflow: 'hidden', gap: 2 },
+    sleepSeg: { height: '100%' },
+    sleepLegend: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing.md, gap: spacing.md },
+    legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    legendDot: { width: 6, height: 6, borderRadius: 3 },
+    legendLabel: { fontSize: 11, color: colors.inkSoft, fontWeight: '600' },
+    legendValue: { fontSize: 11, color: colors.ink, fontWeight: '700' },
+    empty: { fontSize: 13, color: colors.inkSoft },
+
+    bottomRow: { flexDirection: 'row', gap: spacing.md },
+    bottomCard: { flex: 1 },
+    waterRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    waterText: { flex: 1 },
+    bigValue: { fontSize: 18, fontWeight: '800', color: colors.ink, marginTop: spacing.xs },
+    addBtn: {
+      backgroundColor: colors.waterSoft,
+      borderRadius: 999,
+      paddingVertical: 9,
+      alignItems: 'center',
+      marginTop: spacing.md,
+    },
+    addBtnLabel: { color: colors.water, fontWeight: '700', fontSize: 12.5 },
+    sparklineWrap: { marginTop: spacing.sm },
+  });

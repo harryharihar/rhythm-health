@@ -1,184 +1,54 @@
-import React, { useMemo, useState } from 'react';
-import { Alert, Linking, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import Constants from 'expo-constants';
-import { File, Paths } from 'expo-file-system';
-import Card from '../components/Card';
-import DocumentScreen from '../components/DocumentScreen';
-import EntryDialog from '../components/EntryDialog';
-import InfoModal from '../components/InfoModal';
-import { PRIVACY_POLICY, TERMS_OF_SERVICE } from '../data/policyContent';
-import { requestNotificationPermissions } from '../notifications/setup';
-import { useHealth } from '../store/healthStore';
-import { exportAllData } from '../storage/storage';
-import { glow, radius, spacing } from '../theme/theme';
-import { useThemeColors } from '../theme/useTheme';
-import { bedtimeOptions, formatClockLabel, wakeTimeOptions } from '../utils/dateUtils';
-import { GENDER_OPTIONS } from './OnboardingScreen';
-import { LABELS } from '../constants/labels';
-
-const NOTIFICATION_TIME_OPTIONS = [
-  { label: LABELS.profile.notifTime7am, icon: 'sunny-outline' },
-  { label: LABELS.profile.notifTime8am, icon: 'sunny-outline' },
-  { label: LABELS.profile.notifTime6pm, icon: 'partly-sunny-outline' },
-  { label: LABELS.profile.notifTime8pm, icon: 'moon-outline' },
-  { label: LABELS.profile.notifTime9pm, icon: 'moon-outline' },
-  { label: LABELS.profile.notifTime10pm, icon: 'moon-outline' },
-];
-const genderLabel = (value) => GENDER_OPTIONS.find((g) => g.value === value)?.label;
-const APP_VERSION = Constants.expoConfig?.version || '1.0.0';
-
-// The database runs in WAL mode (storage.js: PRAGMA journal_mode = WAL), so
-// SQLite writes accumulate in a separate rhythm.db-wal file and only get
-// merged back into rhythm.db itself at a checkpoint. Measuring just rhythm.db
-// undercounts real usage, often down to ~0 — the bulk of actual data lives in
-// -wal (and -shm) until that happens.
-function getDbSizeMb() {
-  try {
-    const names = ['rhythm.db', 'rhythm.db-wal', 'rhythm.db-shm'];
-    const totalBytes = names.reduce((sum, name) => {
-      const file = new File(Paths.document, 'SQLite', name);
-      return sum + (file.exists ? file.size : 0);
-    }, 0);
-    return totalBytes / (1024 * 1024);
-  } catch {
-    return null;
-  }
-}
-
-function getInitials(name) {
-  if (!name) return '?';
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] || '';
-  const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
-  return (first + last).toUpperCase();
-}
-
-function computeBmi(heightCm, weightKg) {
-  if (!heightCm || !weightKg) return null;
-  const m = heightCm / 100;
-  return (weightKg / (m * m)).toFixed(1);
-}
-
-const bmiCategories = (colors) => [
-  { label: LABELS.profile.bmiUnderweight, range: LABELS.profile.bmiUnderweightRange, min: -Infinity, max: 18.5, color: colors.water },
-  { label: LABELS.profile.bmiNormal, range: LABELS.profile.bmiNormalRange, min: 18.5, max: 25, color: colors.primary },
-  { label: LABELS.profile.bmiOverweight, range: LABELS.profile.bmiOverweightRange, min: 25, max: 30, color: colors.steps },
-  { label: LABELS.profile.bmiObese, range: LABELS.profile.bmiObeseRange, min: 30, max: Infinity, color: colors.danger },
-];
-
-function bmiCategoryFor(bmiValue, categories) {
-  const n = Number(bmiValue);
-  return categories.find((c) => n >= c.min && n < c.max);
-}
-
-const GOAL_META = {
-  steps: { title: LABELS.profile.goalStepsTitle, icon: 'footsteps-outline', unit: LABELS.profile.goalStepsUnit, description: LABELS.profile.goalStepsDescription },
-  water: { title: LABELS.profile.goalWaterTitle, icon: 'water-outline', unit: LABELS.profile.goalWaterUnit, description: LABELS.profile.goalWaterDescription },
-  sleep: { title: LABELS.profile.goalSleepTitle, icon: 'moon-outline', unit: LABELS.profile.goalSleepUnit, description: LABELS.profile.goalSleepDescription },
-};
+import Card from '../../components/Card';
+import DocumentScreen from '../../components/DocumentScreen';
+import EntryDialog from '../../components/EntryDialog';
+import InfoModal from '../../components/InfoModal';
+import { PRIVACY_POLICY, TERMS_OF_SERVICE } from '../../data/policyContent';
+import { useThemeColors } from '../../theme/useTheme';
+import { bedtimeOptions, formatClockLabel, wakeTimeOptions } from '../../utils/dateUtils';
+import { GENDER_OPTIONS } from '../../constants/genderOptions';
+import { LABELS } from '../../constants/labels';
+import { APP_VERSION, genderLabel, NOTIFICATION_TIME_OPTIONS } from './profileCalculations';
+import { useProfileScreen } from './useProfileScreen';
+import { makeStyles } from './ProfileScreen.styles';
 
 export default function ProfileScreen() {
-  const { profile, settings, updateProfile, updateGoals, updateSettings, resetAllData } = useHealth();
   const colors = useThemeColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const dbSizeMb = useMemo(getDbSizeMb, []);
-
-  const [editOpen, setEditOpen] = useState(false);
-  const [editFields, setEditFields] = useState({ name: '', age: '', gender: 'unspecified', heightCm: '', weightKg: '' });
-  const [goalSheet, setGoalSheet] = useState(null); // 'steps' | 'water' | 'sleep' | null
-  const [goalValue, setGoalValue] = useState('');
-  const [timeSheetOpen, setTimeSheetOpen] = useState(false);
-  const [clockGoalSheet, setClockGoalSheet] = useState(null); // 'bedtime' | 'wakeTime' | null
-  const [bmiInfoOpen, setBmiInfoOpen] = useState(false);
-  const [docScreen, setDocScreen] = useState(null); // 'privacy' | 'terms' | null
+  const {
+    profile,
+    settings,
+    updateGoals,
+    updateSettings,
+    dbSizeMb,
+    editOpen, setEditOpen,
+    editFields, setEditFields,
+    goalSheet, setGoalSheet,
+    goalValue, setGoalValue,
+    timeSheetOpen, setTimeSheetOpen,
+    clockGoalSheet, setClockGoalSheet,
+    bmiInfoOpen, setBmiInfoOpen,
+    docScreen, setDocScreen,
+    initials,
+    bmi,
+    categories,
+    currentCategory,
+    goalMeta,
+    goalAccent,
+    goalAccentSoft,
+    openEdit,
+    saveEdit,
+    openGoal,
+    saveGoal,
+    handleToggleReminders,
+    handleExport,
+    confirmClear,
+  } = useProfileScreen(colors);
 
   if (!profile) return null;
-
-  const initials = getInitials(profile.name);
-  const bmi = computeBmi(profile.heightCm, profile.weightKg);
-  const categories = bmiCategories(colors);
-  const currentCategory = bmi ? bmiCategoryFor(bmi, categories) : null;
-  const goalMeta = goalSheet ? GOAL_META[goalSheet] : null;
-  const goalAccent = goalSheet === 'steps' ? colors.steps : goalSheet === 'water' ? colors.water : colors.sleep;
-  const goalAccentSoft = goalSheet === 'steps' ? colors.stepsSoft : goalSheet === 'water' ? colors.waterSoft : colors.sleepSoft;
-
-  const openEdit = () => {
-    setEditFields({
-      name: profile.name || '',
-      age: profile.age ? String(profile.age) : '',
-      gender: profile.gender || 'unspecified',
-      heightCm: profile.heightCm ? String(profile.heightCm) : '',
-      weightKg: profile.weightKg ? String(profile.weightKg) : '',
-    });
-    setEditOpen(true);
-  };
-
-  const saveEdit = () => {
-    updateProfile({
-      name: editFields.name.trim() || profile.name,
-      age: editFields.age ? Number(editFields.age) : null,
-      gender: editFields.gender,
-      heightCm: editFields.heightCm ? Number(editFields.heightCm) : profile.heightCm,
-      weightKg: editFields.weightKg ? Number(editFields.weightKg) : profile.weightKg,
-    });
-    setEditOpen(false);
-  };
-
-  const openGoal = (key, current) => {
-    setGoalValue(String(current));
-    setGoalSheet(key);
-  };
-
-  const saveGoal = () => {
-    const n = Number(goalValue);
-    if (!n) return setGoalSheet(null);
-    const patch =
-      goalSheet === 'steps' ? { stepsGoal: n } :
-      goalSheet === 'water' ? { waterGoalMl: n } :
-      goalSheet === 'sleep' ? { sleepGoalHours: n } : {};
-    updateGoals(patch);
-    setGoalSheet(null);
-  };
-
-  const handleToggleReminders = async (v) => {
-    updateSettings({ remindersEnabled: v });
-    if (!v) return;
-    const granted = await requestNotificationPermissions();
-    if (!granted) {
-      Alert.alert(
-        LABELS.profile.notificationsOffTitle,
-        LABELS.profile.notificationsOffBody,
-        [{ text: LABELS.common.cancel, style: 'cancel' }, { text: LABELS.profile.openSettings, onPress: () => Linking.openSettings() }]
-      );
-    }
-  };
-
-  const handleExport = async () => {
-    const data = await exportAllData();
-    Alert.alert(
-      LABELS.profile.exportPreviewTitle,
-      LABELS.profile.exportPreviewBody
-        .replace('{water}', data.water.length)
-        .replace('{sleep}', data.sleep.length)
-        .replace('{steps}', data.steps.length)
-        .replace('{weight}', data.weight.length)
-        .replace('{workouts}', data.workouts.length)
-        .replace('{meals}', data.meals.length)
-    );
-  };
-
-  const confirmClear = () => {
-    Alert.alert(
-      LABELS.profile.clearDataConfirmTitle,
-      LABELS.profile.clearDataConfirmBody,
-      [
-        { text: LABELS.common.cancel, style: 'cancel' },
-        { text: LABELS.profile.clearDataConfirmAction, style: 'destructive', onPress: resetAllData },
-      ]
-    );
-  };
 
   return (
     <View style={styles.flex}>
@@ -604,172 +474,3 @@ function SettingRow({ styles, colors, icon, iconColor, iconBg, label, subtitle, 
   if (!onPress) return content;
   return <TouchableOpacity onPress={onPress}>{content}</TouchableOpacity>;
 }
-
-const makeStyles = (colors) =>
-  StyleSheet.create({
-    flex: { flex: 1, backgroundColor: colors.bg },
-    ambient: { position: 'absolute', top: 0, left: 0, right: 0, height: 320 },
-    container: { padding: spacing.lg, paddingTop: 60, paddingBottom: 40 },
-    title: { fontSize: 20, fontWeight: '800', color: colors.ink, textAlign: 'center', marginBottom: spacing.lg },
-
-    heroCardWrap: { marginBottom: spacing.lg },
-    heroContent: { alignItems: 'center', paddingVertical: spacing.lg },
-    avatarGlow: {
-      marginBottom: spacing.md,
-      borderRadius: 48,
-      // iOS-only colored glow: Android's `elevation` on a transparent wrapper
-      // around a translucent gradient can paint a solid white box (seen
-      // elsewhere in this app), so no elevation is set here at all.
-      ...Platform.select({
-        ios: {
-          shadowColor: colors.primary,
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.4,
-          shadowRadius: 22,
-        },
-        default: {},
-      }),
-    },
-    avatar: {
-      width: 92,
-      height: 92,
-      borderRadius: 46,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 3,
-      borderColor: colors.bgElevated,
-    },
-    avatarText: { color: colors.onAccent, fontWeight: '800', fontSize: 30, letterSpacing: 0.5 },
-    name: { fontSize: 19, fontWeight: '800', color: colors.ink, marginBottom: 6 },
-    metaRow: { flexDirection: 'row', gap: 8, marginBottom: spacing.md },
-    metaPill: {
-      backgroundColor: colors.surfaceGlassStrong,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: radius.pill,
-      paddingHorizontal: 12,
-      paddingVertical: 5,
-    },
-    metaPillText: { fontSize: 12, fontWeight: '700', color: colors.inkSoft },
-    editBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      backgroundColor: colors.primary,
-      borderRadius: radius.pill,
-      paddingHorizontal: 18,
-      paddingVertical: 10,
-      ...glow(colors.primary, 12, 0.3),
-    },
-    editBtnText: { fontSize: 13, fontWeight: '700', color: colors.onAccent },
-
-    quickStatsRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginTop: spacing.lg,
-      paddingTop: spacing.md,
-      borderTopWidth: 1,
-      borderTopColor: colors.line,
-      width: '100%',
-    },
-    quickStat: { alignItems: 'center', flex: 1 },
-    quickStatIcon: { marginBottom: 3 },
-    quickStatValue: { fontSize: 15, fontWeight: '800', color: colors.ink },
-    quickStatUnit: { fontSize: 11, fontWeight: '600', color: colors.inkSoft },
-    quickStatLabelRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
-    quickStatLabel: { fontSize: 10.5, fontWeight: '600', color: colors.inkSoft, textTransform: 'uppercase', letterSpacing: 0.4 },
-    quickStatInfoIcon: { marginLeft: 3 },
-    quickStatDivider: { width: 1, height: 30, backgroundColor: colors.line },
-
-    bmiFormulaBox: {
-      backgroundColor: colors.surfaceGlass,
-      borderRadius: radius.md,
-      borderWidth: 1,
-      borderColor: colors.border,
-      padding: spacing.md,
-      marginBottom: spacing.lg,
-    },
-    bmiFormulaLabel: { fontSize: 10, fontWeight: '700', color: colors.inkSoft, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 },
-    bmiFormulaText: { fontSize: 14, fontWeight: '600', color: colors.inkSoft },
-    bmiFormulaResult: { fontSize: 15, fontWeight: '800', color: colors.ink },
-    bmiCategoryRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.line },
-    bmiCategoryDot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
-    bmiCategoryLabel: { fontSize: 13.5, fontWeight: '700', color: colors.ink, flex: 1 },
-    bmiCategoryRange: { fontSize: 12, fontWeight: '600', color: colors.inkSoft },
-    bmiCurrentBadge: { backgroundColor: colors.primary, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3, marginLeft: 8 },
-    bmiCurrentBadgeText: { fontSize: 10, fontWeight: '800', color: colors.onAccent },
-
-    sectionLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.sm, marginTop: spacing.xs, paddingLeft: 2 },
-    sectionLabel: { fontSize: 11, fontWeight: '700', color: colors.inkSoft, textTransform: 'uppercase', letterSpacing: 0.8 },
-
-    settingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.line },
-    rowIconWrap: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: spacing.sm,
-    },
-    settingTextWrap: { flex: 1, marginRight: spacing.md },
-    settingLabel: { fontSize: 14, fontWeight: '700', color: colors.ink },
-    settingSubtitle: { fontSize: 11.5, color: colors.inkSoft, marginTop: 2 },
-    rowRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    rowRightValue: { fontSize: 13, color: colors.inkSoft, fontWeight: '600' },
-    noBorder: { borderBottomWidth: 0 },
-    dangerText: { color: colors.danger },
-
-    field: { marginBottom: 2 },
-    fieldLabel: {
-      fontSize: 11,
-      fontWeight: '700',
-      color: colors.inkSoft,
-      marginBottom: 6,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-    },
-    genderRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: spacing.md },
-    genderChip: {
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      borderRadius: 999,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    genderChipActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
-    genderChipText: { fontSize: 13, fontWeight: '600', color: colors.inkSoft },
-    genderChipTextActive: { color: colors.primary },
-    sheetInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.md },
-    sheetInfoText: { fontSize: 11.5, color: colors.inkSoft, fontWeight: '500', flexShrink: 1 },
-    input: {
-      backgroundColor: colors.bgElevated,
-      borderRadius: 14,
-      borderWidth: 1,
-      borderColor: colors.border,
-      paddingHorizontal: spacing.md,
-      paddingVertical: 14,
-      fontSize: 15,
-      color: colors.ink,
-      marginBottom: spacing.md,
-    },
-    submitBtn: { backgroundColor: colors.primary, borderRadius: 999, paddingVertical: 14, alignItems: 'center' },
-    submitLabel: { color: colors.onAccent, fontWeight: '800', fontSize: 14 },
-
-    goalDialogIconWrap: { alignItems: 'center', marginBottom: spacing.md },
-    goalDialogIconCircle: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
-    goalInputRow: { position: 'relative', justifyContent: 'center', marginBottom: spacing.md },
-    goalInputField: { paddingRight: 70, marginBottom: 0 },
-    goalInputUnit: {
-      position: 'absolute',
-      right: spacing.md,
-      top: 0,
-      bottom: 0,
-      textAlignVertical: 'center',
-      includeFontPadding: false,
-      fontSize: 13,
-      fontWeight: '700',
-      color: colors.inkSoft,
-    },
-  });
