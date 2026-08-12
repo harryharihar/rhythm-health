@@ -5,7 +5,7 @@ import { exportAllData } from '../../storage/storage';
 import { requestNotificationPermissions } from '../../notifications/setup';
 import { LABELS } from '../../constants/labels';
 import { bmiCategories, bmiCategoryFor, computeBmi, getDbSizeMb, getInitials, GOAL_META } from './profileCalculations';
-import type { Gender } from '../../types/models';
+import type { Gender, Reminder, ReminderCategory } from '../../types/models';
 
 interface EditFields {
   name: string;
@@ -15,16 +15,25 @@ interface EditFields {
   weightKg: string;
 }
 
+interface ReminderForm {
+  id: string | null;
+  category: ReminderCategory;
+  label: string;
+  time: string;
+}
+
+const NEW_REMINDER_FORM: ReminderForm = { id: null, category: 'water', label: '', time: '08:00' };
+
 // All state, derived data, and handlers for the Profile screen.
 export function useProfileScreen(colors: any) {
-  const { profile, settings, updateProfile, updateGoals, updateSettings, resetAllData } = useHealth();
+  const { profile, settings, reminders, updateProfile, updateGoals, updateSettings, resetAllData, addReminder, updateReminder, removeReminder } = useHealth();
   const dbSizeMb = useMemo(getDbSizeMb, []);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editFields, setEditFields] = useState<EditFields>({ name: '', age: '', gender: 'unspecified', heightCm: '', weightKg: '' });
   const [goalSheet, setGoalSheet] = useState(null); // 'steps' | 'water' | 'sleep' | null
   const [goalValue, setGoalValue] = useState('');
-  const [timeSheetOpen, setTimeSheetOpen] = useState(false);
+  const [reminderForm, setReminderForm] = useState<ReminderForm | null>(null);
   const [clockGoalSheet, setClockGoalSheet] = useState(null); // 'bedtime' | 'wakeTime' | null
   const [bmiInfoOpen, setBmiInfoOpen] = useState(false);
   const [docScreen, setDocScreen] = useState(null); // 'privacy' | 'terms' | null
@@ -95,6 +104,31 @@ export function useProfileScreen(colors: any) {
     updateSettings({ remindersEnabled: true });
   };
 
+  const openAddReminder = () => setReminderForm(NEW_REMINDER_FORM);
+  const openEditReminder = (reminder: Reminder) =>
+    setReminderForm({ id: reminder.id, category: reminder.category, label: reminder.label, time: reminder.time });
+  const closeReminderSheet = () => setReminderForm(null);
+
+  const saveReminder = () => {
+    if (!reminderForm || !reminderForm.label.trim()) return;
+    const { id, category, label, time } = reminderForm;
+    if (id) {
+      updateReminder(id, { category, label: label.trim(), time });
+    } else {
+      addReminder({ category, label: label.trim(), time, enabled: true });
+    }
+    setReminderForm(null);
+  };
+
+  const deleteReminder = () => {
+    if (reminderForm?.id) removeReminder(reminderForm.id);
+    setReminderForm(null);
+  };
+
+  const toggleReminderEnabled = (reminder: Reminder) => {
+    updateReminder(reminder.id, { enabled: !reminder.enabled });
+  };
+
   const handleExport = async () => {
     const data = await exportAllData();
     Alert.alert(
@@ -123,6 +157,7 @@ export function useProfileScreen(colors: any) {
   return {
     profile,
     settings,
+    reminders,
     updateGoals,
     updateSettings,
     dbSizeMb,
@@ -130,7 +165,7 @@ export function useProfileScreen(colors: any) {
     editFields, setEditFields,
     goalSheet, setGoalSheet,
     goalValue, setGoalValue,
-    timeSheetOpen, setTimeSheetOpen,
+    reminderForm, setReminderForm,
     clockGoalSheet, setClockGoalSheet,
     bmiInfoOpen, setBmiInfoOpen,
     docScreen, setDocScreen,
@@ -145,6 +180,12 @@ export function useProfileScreen(colors: any) {
     saveEdit,
     openGoal,
     saveGoal,
+    openAddReminder,
+    openEditReminder,
+    closeReminderSheet,
+    saveReminder,
+    deleteReminder,
+    toggleReminderEnabled,
     handleToggleReminders,
     handleExport,
     confirmClear,

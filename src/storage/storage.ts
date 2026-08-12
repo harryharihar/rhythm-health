@@ -4,7 +4,7 @@
 // the app removes this data.
 
 import * as SQLite from 'expo-sqlite';
-import type { Meal, Profile, Settings, SleepLog, StepsLog, WaterLog, WeightLog, Workout } from '../types/models';
+import type { Meal, Profile, Reminder, ReminderCategory, Settings, SleepLog, StepsLog, WaterLog, WeightLog, Workout } from '../types/models';
 
 // A single shared promise for the whole app, assigned synchronously on the
 // first call. Storage functions fire concurrently on startup (loadAll uses
@@ -101,6 +101,15 @@ async function runMigrations(db: SQLite.SQLiteDatabase) {
       timestamp TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_meals_timestamp ON meals(timestamp);
+
+    CREATE TABLE IF NOT EXISTS reminders (
+      id TEXT PRIMARY KEY,
+      category TEXT,
+      label TEXT,
+      time TEXT,
+      enabled INTEGER,
+      timestamp TEXT
+    );
   `);
 
   // Columns added after the initial release — CREATE TABLE IF NOT EXISTS above
@@ -304,6 +313,50 @@ export const weightStore = logTable<WeightLog>('weight_logs', ['weightKg']);
 export const workoutStore = logTable<Workout>('workouts', ['type', 'durationMin', 'caloriesKcal', 'distanceKm']);
 export const mealStore = logTable<Meal>('meals', ['mealType', 'name', 'caloriesKcal', 'proteinG', 'carbsG', 'fatsG']);
 
+// ---------- Reminders ----------
+// Wraps the generic logTable so callers work with a real boolean `enabled`
+// instead of SQLite's 0/1 — the same pattern getSettings/saveSettings use
+// for `darkMode`/`remindersEnabled`.
+
+interface ReminderRow {
+  id: string;
+  timestamp: string;
+  category: ReminderCategory;
+  label: string;
+  time: string;
+  enabled: number;
+}
+
+const remindersTable = logTable<ReminderRow>('reminders', ['category', 'label', 'time', 'enabled']);
+
+function rowToReminder(row: ReminderRow): Reminder {
+  return { id: row.id, timestamp: row.timestamp, category: row.category, label: row.label, time: row.time, enabled: !!row.enabled };
+}
+
+type ReminderInput = { category: ReminderCategory; label: string; time: string; enabled: boolean };
+
+export const remindersStore = {
+  async all(): Promise<Reminder[]> {
+    const rows = await remindersTable.all();
+    return rows.map(rowToReminder);
+  },
+  async add(entry: ReminderInput): Promise<Reminder> {
+    const row = await remindersTable.add({ ...entry, enabled: entry.enabled ? 1 : 0 });
+    return rowToReminder(row);
+  },
+  async update(id: string, patch: Partial<ReminderInput>): Promise<Reminder> {
+    const { enabled, ...rest } = patch;
+    const dbPatch: Partial<ReminderRow> = { ...rest };
+    if (typeof enabled === 'boolean') dbPatch.enabled = enabled ? 1 : 0;
+    const row = await remindersTable.upsert(id, dbPatch);
+    return rowToReminder(row);
+  },
+  async remove(id: string): Promise<Reminder[]> {
+    const rows = await remindersTable.remove(id);
+    return rows.map(rowToReminder);
+  },
+};
+
 // ---------- Danger zone ----------
 
 export async function clearAllData() {
@@ -317,6 +370,7 @@ export async function clearAllData() {
     DELETE FROM weight_logs;
     DELETE FROM workouts;
     DELETE FROM meals;
+    DELETE FROM reminders;
   `);
 }
 

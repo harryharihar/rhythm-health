@@ -192,6 +192,20 @@ export function wakeTimeOptions() {
   return times;
 }
 
+// Every half-hour slot across the full day — used by the custom Reminders
+// picker, which (unlike bedtime/wake) has no natural window to narrow to
+// since a reminder can be for anything at any time.
+export function timeOptions() {
+  const times = [];
+  for (let h = 0; h < 24; h++) {
+    for (const m of [0, 30]) {
+      const hhmm = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      times.push({ value: hhmm, label: formatClockLabel(hhmm) });
+    }
+  }
+  return times;
+}
+
 // Minutes from `actualHHMM` to `goalHHMM` as times-of-day, wrapped to the
 // shorter direction across midnight (so 11:50 PM vs 12:10 AM reads as 20
 // minutes late, not ~23h40 early). Positive = actual is later than goal.

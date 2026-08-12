@@ -5,15 +5,6 @@ import { File, Paths } from 'expo-file-system';
 import { LABELS } from '../../constants/labels';
 import { GENDER_OPTIONS } from '../../constants/genderOptions';
 
-export const NOTIFICATION_TIME_OPTIONS = [
-  { label: LABELS.profile.notifTime7am, icon: 'sunny-outline' },
-  { label: LABELS.profile.notifTime8am, icon: 'sunny-outline' },
-  { label: LABELS.profile.notifTime6pm, icon: 'partly-sunny-outline' },
-  { label: LABELS.profile.notifTime8pm, icon: 'moon-outline' },
-  { label: LABELS.profile.notifTime9pm, icon: 'moon-outline' },
-  { label: LABELS.profile.notifTime10pm, icon: 'moon-outline' },
-];
-
 export const genderLabel = (value) => GENDER_OPTIONS.find((g) => g.value === value)?.label;
 export const APP_VERSION = Constants.expoConfig?.version || '1.0.0';
 
@@ -66,3 +57,13 @@ export const GOAL_META = {
   water: { title: LABELS.profile.goalWaterTitle, icon: 'water-outline', unit: LABELS.profile.goalWaterUnit, description: LABELS.profile.goalWaterDescription },
   sleep: { title: LABELS.profile.goalSleepTitle, icon: 'moon-outline', unit: LABELS.profile.goalSleepUnit, description: LABELS.profile.goalSleepDescription },
 };
+
+// Reminder categories map 1:1 to the Android notification channels
+// (src/notifications/setup.ts) — picking a category is what determines
+// which channel (and therefore which mute switch) a reminder belongs to.
+export const REMINDER_CATEGORIES = (colors) => [
+  { value: 'water' as const, label: LABELS.notifications.categoryWater, icon: 'water-outline', color: colors.water, soft: colors.waterSoft },
+  { value: 'meals' as const, label: LABELS.notifications.categoryMeals, icon: 'restaurant-outline', color: colors.steps, soft: colors.stepsSoft },
+  { value: 'sleep' as const, label: LABELS.notifications.categorySleep, icon: 'moon-outline', color: colors.sleep, soft: colors.sleepSoft },
+  { value: 'steps' as const, label: LABELS.notifications.categorySteps, icon: 'footsteps-outline', color: colors.primary, soft: colors.primarySoft },
+];

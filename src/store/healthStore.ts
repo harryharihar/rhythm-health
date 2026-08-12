@@ -6,6 +6,7 @@ import {
   getProfile,
   getSettings,
   mealStore,
+  remindersStore,
   saveProfile,
   saveSettings,
   sleepStore,
@@ -19,11 +20,13 @@ import { watchTodaySteps } from '../utils/pedometer';
 import { getStepsResetOffset, setStepsResetOffset } from '../utils/stepsOffset';
 import { hasNotificationPermission } from '../notifications/setup';
 import { cancelAllReminders, rescheduleAllReminders } from '../notifications/scheduler';
-import type { Meal, Profile, ProfileGoals, Settings, SleepLog, StepsLog, TodayTotals, WaterLog, WeightLog, Workout } from '../types/models';
+import type { Meal, Profile, ProfileGoals, Reminder, ReminderCategory, Settings, SleepLog, StepsLog, TodayTotals, WaterLog, WeightLog, Workout } from '../types/models';
 
 // Started by initialize() below; kept outside the store since it's a
 // subscription handle, not app state.
 let stopAutoSteps: (() => void) | null = null;
+
+type ReminderInput = { category: ReminderCategory; label: string; time: string; enabled: boolean };
 
 export interface HealthState {
   loading: boolean;
@@ -35,6 +38,7 @@ export interface HealthState {
   weight: WeightLog[];
   workouts: Workout[];
   meals: Meal[];
+  reminders: Reminder[];
   autoStepsActive: boolean;
   rawStepsToday: number;
 
@@ -50,6 +54,9 @@ export interface HealthState {
   addWeight: (weightKg: number) => Promise<void>;
   addWorkout: (entry: { type: string; durationMin: number; caloriesKcal: number; distanceKm: number | null }) => Promise<void>;
   addMeal: (entry: { mealType: string; name: string; caloriesKcal: number; proteinG: number; carbsG: number; fatsG: number }) => Promise<void>;
+  addReminder: (entry: ReminderInput) => Promise<Reminder>;
+  updateReminder: (id: string, patch: Partial<ReminderInput>) => Promise<Reminder>;
+  removeReminder: (id: string) => Promise<void>;
   syncAutoSteps: (rawCount: number) => Promise<void>;
   resetAllData: () => Promise<void>;
 }
@@ -105,12 +112,13 @@ export const useHealthStore = create<HealthState>()((set, get) => ({
   weight: [],
   workouts: [],
   meals: [],
+  reminders: [],
   autoStepsActive: false,
   rawStepsToday: 0,
 
   loadAll: async () => {
     set({ loading: true });
-    const [p, s, w, sl, st, wt, wo, ml] = await Promise.all([
+    const [p, s, w, sl, st, wt, wo, ml, rm] = await Promise.all([
       getProfile(),
       getSettings(),
       waterStore.all(),
@@ -119,8 +127,9 @@ export const useHealthStore = create<HealthState>()((set, get) => ({
       weightStore.all(),
       workoutStore.all(),
       mealStore.all(),
+      remindersStore.all(),
     ]);
-    set({ profile: p, settings: s, water: w, sleep: sl, steps: st, weight: wt, workouts: wo, meals: ml, loading: false });
+    set({ profile: p, settings: s, water: w, sleep: sl, steps: st, weight: wt, workouts: wo, meals: ml, reminders: rm, loading: false });
   },
 
   // Loads everything from SQLite, then starts the device step sensor.
@@ -133,7 +142,7 @@ export const useHealthStore = create<HealthState>()((set, get) => ({
     // local notifications can be dropped by the OS (e.g. after a device
     // reboot on Android), and this is cheap/idempotent either way.
     if (get().settings.remindersEnabled && (await hasNotificationPermission())) {
-      await rescheduleAllReminders(get().profile);
+      await rescheduleAllReminders(get().reminders);
     }
   },
 
@@ -156,11 +165,6 @@ export const useHealthStore = create<HealthState>()((set, get) => ({
     const base = get().profile || DEFAULT_PROFILE;
     const next = await saveProfile({ ...base, goals: { ...base.goals, ...goalsPatch } });
     set({ profile: next });
-    // Bedtime/wake goal changes shift when the sleep reminders should fire —
-    // re-schedule so they stay in sync, but only if reminders are actually on.
-    if (get().settings.remindersEnabled && (await hasNotificationPermission())) {
-      await rescheduleAllReminders(next);
-    }
     return next;
   },
 
@@ -169,7 +173,7 @@ export const useHealthStore = create<HealthState>()((set, get) => ({
     await saveSettings(next);
     set({ settings: next });
     if (patch.remindersEnabled === true) {
-      if (await hasNotificationPermission()) await rescheduleAllReminders(get().profile);
+      if (await hasNotificationPermission()) await rescheduleAllReminders(get().reminders);
     } else if (patch.remindersEnabled === false) {
       await cancelAllReminders();
     }
@@ -209,6 +213,37 @@ export const useHealthStore = create<HealthState>()((set, get) => ({
     set((state) => ({ meals: [entry, ...state.meals] }));
   },
 
+  // ----- Reminders -----
+  // Fully user-defined — there is no preset schedule, so every CRUD op here
+  // re-syncs the actual OS-level alarms to match, but only when reminders
+  // are enabled and permission was granted (otherwise nothing should be
+  // scheduled regardless of what's in the list).
+  addReminder: async (entry) => {
+    const reminder = await remindersStore.add(entry);
+    set((state) => ({ reminders: [reminder, ...state.reminders] }));
+    if (get().settings.remindersEnabled && (await hasNotificationPermission())) {
+      await rescheduleAllReminders(get().reminders);
+    }
+    return reminder;
+  },
+
+  updateReminder: async (id, patch) => {
+    const reminder = await remindersStore.update(id, patch);
+    set((state) => ({ reminders: state.reminders.map((r) => (r.id === id ? reminder : r)) }));
+    if (get().settings.remindersEnabled && (await hasNotificationPermission())) {
+      await rescheduleAllReminders(get().reminders);
+    }
+    return reminder;
+  },
+
+  removeReminder: async (id) => {
+    const remaining = await remindersStore.remove(id);
+    set({ reminders: remaining });
+    if (get().settings.remindersEnabled && (await hasNotificationPermission())) {
+      await rescheduleAllReminders(get().reminders);
+    }
+  },
+
   // Keeps a single "auto" entry per day in the steps log up to date with the
   // device's pedometer, separate from manually-added entries. Both count
   // toward todayTotals.stepsCount and the weekly chart, same as any other log.
@@ -244,15 +279,12 @@ export const useHealthStore = create<HealthState>()((set, get) => ({
       weight: [],
       workouts: [],
       meals: [],
+      reminders: [],
       autoStepsActive: false,
     });
-    // Bedtime/wake goals reset to defaults along with the rest of the
-    // profile — re-schedule so reminders don't keep firing at the old times.
-    if (DEFAULT_SETTINGS.remindersEnabled && (await hasNotificationPermission())) {
-      await rescheduleAllReminders(null);
-    } else {
-      await cancelAllReminders();
-    }
+    // Reminders themselves are wiped along with everything else, so nothing
+    // is left to schedule.
+    await cancelAllReminders();
     await get().syncAutoSteps(get().rawStepsToday);
   },
 }));

@@ -9,13 +9,13 @@ import EntryDialog from '../../components/EntryDialog';
 import InfoModal from '../../components/InfoModal';
 import { PRIVACY_POLICY, TERMS_OF_SERVICE } from '../../data/policyContent';
 import { useThemeColors } from '../../theme/useTheme';
-import { bedtimeOptions, formatClockLabel, wakeTimeOptions } from '../../utils/dateUtils';
+import { bedtimeOptions, formatClockLabel, timeOptions, wakeTimeOptions } from '../../utils/dateUtils';
 import { GENDER_OPTIONS } from '../../constants/genderOptions';
 import { LABELS } from '../../constants/labels';
-import { APP_VERSION, genderLabel, NOTIFICATION_TIME_OPTIONS } from './profileCalculations';
+import { APP_VERSION, genderLabel, REMINDER_CATEGORIES } from './profileCalculations';
 import { useProfileScreen } from './useProfileScreen';
 import { makeStyles } from './ProfileScreen.styles';
-import type { IconName } from '../../types/models';
+import type { IconName, Reminder } from '../../types/models';
 
 export default function ProfileScreen() {
   const colors = useThemeColors();
@@ -23,6 +23,7 @@ export default function ProfileScreen() {
   const {
     profile,
     settings,
+    reminders,
     updateGoals,
     updateSettings,
     dbSizeMb,
@@ -30,7 +31,7 @@ export default function ProfileScreen() {
     editFields, setEditFields,
     goalSheet, setGoalSheet,
     goalValue, setGoalValue,
-    timeSheetOpen, setTimeSheetOpen,
+    reminderForm, setReminderForm,
     clockGoalSheet, setClockGoalSheet,
     bmiInfoOpen, setBmiInfoOpen,
     docScreen, setDocScreen,
@@ -45,10 +46,19 @@ export default function ProfileScreen() {
     saveEdit,
     openGoal,
     saveGoal,
+    openAddReminder,
+    openEditReminder,
+    closeReminderSheet,
+    saveReminder,
+    deleteReminder,
+    toggleReminderEnabled,
     handleToggleReminders,
     handleExport,
     confirmClear,
   } = useProfileScreen(colors);
+
+  const reminderCategories = REMINDER_CATEGORIES(colors);
+  const reminderCategoryMeta = (category: string) => reminderCategories.find((c) => c.value === category) || reminderCategories[0];
 
   if (!profile) return null;
 
@@ -128,6 +138,7 @@ export default function ProfileScreen() {
             icon="notifications-outline"
             label={LABELS.profile.reminders}
             subtitle={LABELS.profile.remindersSubtitle}
+            last
             right={
               <Switch
                 value={settings.remindersEnabled}
@@ -137,14 +148,49 @@ export default function ProfileScreen() {
               />
             }
           />
+        </Card>
+
+        <SectionLabel styles={styles} colors={colors} icon="alarm-outline" text={LABELS.notifications.sectionReminders} />
+        <Card>
+          {reminders.length === 0 ? (
+            <Text style={styles.emptyRemindersText}>{LABELS.notifications.emptyReminders}</Text>
+          ) : (
+            reminders.map((reminder) => {
+              const meta = reminderCategoryMeta(reminder.category);
+              return (
+                <SettingRow
+                  key={reminder.id}
+                  styles={styles}
+                  colors={colors}
+                  icon={meta.icon as IconName}
+                  iconColor={meta.color}
+                  iconBg={meta.soft}
+                  label={reminder.label}
+                  onPress={() => openEditReminder(reminder)}
+                  right={
+                    <View style={styles.reminderRowRight}>
+                      <Text style={styles.rowRightValue}>{formatClockLabel(reminder.time)}</Text>
+                      <Switch
+                        value={reminder.enabled}
+                        onValueChange={() => toggleReminderEnabled(reminder)}
+                        trackColor={{ true: colors.primary, false: colors.line }}
+                        thumbColor={colors.ink}
+                      />
+                    </View>
+                  }
+                />
+              );
+            })
+          )}
           <SettingRow
             styles={styles}
             colors={colors}
-            icon="alarm-outline"
-            label={LABELS.profile.notificationTime}
-            value={settings.notificationTime}
+            icon="add-circle-outline"
+            iconColor={colors.primary}
+            iconBg={colors.primarySoft}
+            label={LABELS.notifications.addReminder}
             last
-            onPress={() => setTimeSheetOpen(true)}
+            onPress={openAddReminder}
           />
         </Card>
 
@@ -354,17 +400,66 @@ export default function ProfileScreen() {
       />
 
       <EntryDialog
-        visible={timeSheetOpen}
-        title={LABELS.profile.notificationTimeTitle}
-        accentColor={colors.primary}
-        options={NOTIFICATION_TIME_OPTIONS.map((t) => ({
-          label: t.label,
-          icon: t.icon as IconName,
-          active: t.label === settings.notificationTime,
-          onPress: () => { updateSettings({ notificationTime: t.label }); },
-        }))}
-        onClose={() => setTimeSheetOpen(false)}
-      />
+        visible={!!reminderForm}
+        title={reminderForm?.id ? LABELS.notifications.editReminderTitle : LABELS.notifications.addReminderTitle}
+        accentColor={reminderCategoryMeta(reminderForm?.category || 'water').color}
+        onClose={closeReminderSheet}
+        footer={
+          <View style={styles.reminderFooter}>
+            <TouchableOpacity
+              style={[styles.submitBtn, { backgroundColor: reminderCategoryMeta(reminderForm?.category || 'water').color }]}
+              onPress={saveReminder}
+            >
+              <Text style={styles.submitLabel}>{LABELS.common.save}</Text>
+            </TouchableOpacity>
+            {reminderForm?.id ? (
+              <TouchableOpacity style={styles.deleteReminderBtn} onPress={deleteReminder}>
+                <Text style={styles.deleteReminderLabel}>{LABELS.notifications.deleteReminder}</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        }
+      >
+        <LabeledField styles={styles} label={LABELS.notifications.categoryLabel}>
+          <View style={styles.genderRow}>
+            {reminderCategories.map((cat) => (
+              <TouchableOpacity
+                key={cat.value}
+                style={[styles.genderChip, reminderForm?.category === cat.value && { backgroundColor: cat.soft, borderColor: cat.color }]}
+                onPress={() => setReminderForm((f) => (f ? { ...f, category: cat.value } : f))}
+              >
+                <Text style={[styles.genderChipText, reminderForm?.category === cat.value && { color: cat.color }]}>{cat.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </LabeledField>
+        <LabeledField styles={styles} label={LABELS.notifications.reminderNameLabel}>
+          <TextInput
+            style={styles.input}
+            placeholder={LABELS.notifications.reminderNamePlaceholder}
+            placeholderTextColor={colors.inkFaint}
+            value={reminderForm?.label || ''}
+            onChangeText={(v) => setReminderForm((f) => (f ? { ...f, label: v } : f))}
+          />
+        </LabeledField>
+        <LabeledField styles={styles} label={LABELS.notifications.timeLabel}>
+          <View style={styles.genderRow}>
+            {timeOptions().map((t) => {
+              const active = reminderForm?.time === t.value;
+              const meta = reminderCategoryMeta(reminderForm?.category || 'water');
+              return (
+                <TouchableOpacity
+                  key={t.value}
+                  style={[styles.genderChip, active && { backgroundColor: meta.soft, borderColor: meta.color }]}
+                  onPress={() => setReminderForm((f) => (f ? { ...f, time: t.value } : f))}
+                >
+                  <Text style={[styles.genderChipText, active && { color: meta.color }]}>{t.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </LabeledField>
+      </EntryDialog>
 
       <InfoModal visible={bmiInfoOpen} title={LABELS.profile.aboutBmiTitle} onClose={() => setBmiInfoOpen(false)}>
         <View style={styles.sheetInfoRow}>

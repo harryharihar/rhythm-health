@@ -86,6 +86,22 @@ export interface Meal {
   fatsG: number;
 }
 
+// Reminder categories map 1:1 to the Android notification channels in
+// src/notifications/setup.ts (CHANNELS) — the category IS the channel, so
+// muting one in Android's system settings mutes every reminder of that
+// kind. `label` and `time` are fully user-chosen — there is no preset
+// schedule; a fresh install starts with zero reminders.
+export type ReminderCategory = 'water' | 'meals' | 'sleep' | 'steps';
+
+export interface Reminder {
+  id: string;
+  timestamp: string;
+  category: ReminderCategory;
+  label: string;
+  time: string; // "HH:mm" 24h
+  enabled: boolean;
+}
+
 export interface TodayTotals {
   waterMl: number;
   stepsCount: number;

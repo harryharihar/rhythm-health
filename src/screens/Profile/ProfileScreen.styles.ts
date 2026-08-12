@@ -116,6 +116,12 @@ export const makeStyles = (colors) =>
     noBorder: { borderBottomWidth: 0 },
     dangerText: { color: colors.danger },
 
+    reminderRowRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    emptyRemindersText: { fontSize: 12.5, color: colors.inkSoft, fontWeight: '500', lineHeight: 18, paddingVertical: spacing.sm },
+    reminderFooter: { gap: spacing.sm },
+    deleteReminderBtn: { paddingVertical: 10, alignItems: 'center' },
+    deleteReminderLabel: { color: colors.danger, fontWeight: '700', fontSize: 13.5 },
+
     field: { marginBottom: 2 },
     fieldLabel: {
       fontSize: 11,
