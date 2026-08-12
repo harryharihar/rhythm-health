@@ -13,19 +13,20 @@ import { glow } from '../theme/theme';
 import { useThemeColors } from '../theme/useTheme';
 import { useHealthStore } from '../store/healthStore';
 import { LABELS } from '../constants/labels';
+import { ROUTES, RouteName } from './routes';
 
 const Tab = createBottomTabNavigator();
 
-const ICONS: Record<string, string> = {
-  Home: 'home',
-  Activity: 'pulse',
-  Nutrition: 'nutrition',
-  Sleep: 'moon',
-  Profile: 'person',
+const ICONS: Record<RouteName, string> = {
+  [ROUTES.HOME]: 'home',
+  [ROUTES.ACTIVITY]: 'pulse',
+  [ROUTES.NUTRITION]: 'nutrition',
+  [ROUTES.SLEEP]: 'moon',
+  [ROUTES.PROFILE]: 'person',
 };
 
 interface TabIconProps {
-  name: string;
+  name: RouteName;
   focused: boolean;
   accent: string;
   onAccent: string;
@@ -52,12 +53,12 @@ export default function RootNavigator() {
   // even when the real inset is under-reported.
   const tabBarBottomInset = Math.max(insets.bottom, 16);
 
-  const tabAccent = {
-    Home: colors.primary,
-    Activity: colors.steps,
-    Nutrition: colors.water,
-    Sleep: colors.sleep,
-    Profile: colors.primary,
+  const tabAccent: Record<RouteName, string> = {
+    [ROUTES.HOME]: colors.primary,
+    [ROUTES.ACTIVITY]: colors.steps,
+    [ROUTES.NUTRITION]: colors.water,
+    [ROUTES.SLEEP]: colors.sleep,
+    [ROUTES.PROFILE]: colors.primary,
   };
 
   const navTheme = useMemo(() => {
@@ -71,7 +72,7 @@ export default function RootNavigator() {
         id={undefined}
         screenOptions={({ route }) => ({
           headerShown: false,
-          tabBarActiveTintColor: tabAccent[route.name],
+          tabBarActiveTintColor: tabAccent[route.name as RouteName],
           tabBarInactiveTintColor: colors.inkFaint,
           tabBarStyle: {
             backgroundColor: colors.bgElevated,
@@ -87,15 +88,21 @@ export default function RootNavigator() {
           },
           tabBarLabelStyle: { fontSize: 10.5, fontWeight: '700', marginTop: 2 },
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon name={route.name} focused={focused} accent={tabAccent[route.name]} onAccent={colors.onAccent} color={color} />
+            <TabIcon
+              name={route.name as RouteName}
+              focused={focused}
+              accent={tabAccent[route.name as RouteName]}
+              onAccent={colors.onAccent}
+              color={color}
+            />
           ),
         })}
       >
-        <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: LABELS.nav.home }} />
-        <Tab.Screen name="Activity" component={ActivityScreen} options={{ tabBarLabel: LABELS.nav.activity }} />
-        <Tab.Screen name="Nutrition" component={NutritionScreen} options={{ tabBarLabel: LABELS.nav.nutrition }} />
-        <Tab.Screen name="Sleep" component={SleepScreen} options={{ tabBarLabel: LABELS.nav.sleep }} />
-        <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: LABELS.nav.profile }} />
+        <Tab.Screen name={ROUTES.HOME} component={HomeScreen} options={{ tabBarLabel: LABELS.nav.home }} />
+        <Tab.Screen name={ROUTES.ACTIVITY} component={ActivityScreen} options={{ tabBarLabel: LABELS.nav.activity }} />
+        <Tab.Screen name={ROUTES.NUTRITION} component={NutritionScreen} options={{ tabBarLabel: LABELS.nav.nutrition }} />
+        <Tab.Screen name={ROUTES.SLEEP} component={SleepScreen} options={{ tabBarLabel: LABELS.nav.sleep }} />
+        <Tab.Screen name={ROUTES.PROFILE} component={ProfileScreen} options={{ tabBarLabel: LABELS.nav.profile }} />
       </Tab.Navigator>
     </NavigationContainer>
   );
