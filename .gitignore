@@ -32,3 +32,6 @@ yarn-error.*
 
 # Local tool config
 .claude/
+
+# IDE
+.idea/

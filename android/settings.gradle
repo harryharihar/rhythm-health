@@ -1,16 +1,32 @@
 pluginManagement {
+  // Android Studio's Gradle daemon launches without the shell's PATH, so a
+  // bare "node" command fails to spawn when node is managed by nvm (it's not
+  // on a standard system PATH). Resolve the real absolute path via a login
+  // shell once at config time, with a fallback to plain "node" for CI/other
+  // environments where it's already on PATH normally. Same fix as
+  // android/app/build.gradle's nodeBinary — this file runs earlier in
+  // Gradle's lifecycle, so it needs its own copy of the workaround.
+  def nodeBinary = {
+    try {
+      def resolved = ["/bin/zsh", "-lc", "command -v node"].execute(null, rootDir).text.trim()
+      return resolved ?: "node"
+    } catch (Exception e) {
+      return "node"
+    }
+  }()
+
   def reactNativeGradlePlugin = new File(
     providers.exec {
       workingDir(rootDir)
-      commandLine("node", "--print", "require.resolve('@react-native/gradle-plugin/package.json', { paths: [require.resolve('react-native/package.json')] })")
+      commandLine(nodeBinary, "--print", "require.resolve('@react-native/gradle-plugin/package.json', { paths: [require.resolve('react-native/package.json')] })")
     }.standardOutput.asText.get().trim()
   ).getParentFile().absolutePath
   includeBuild(reactNativeGradlePlugin)
-  
+
   def expoPluginsPath = new File(
     providers.exec {
       workingDir(rootDir)
-      commandLine("node", "--print", "require.resolve('expo-modules-autolinking/package.json', { paths: [require.resolve('expo/package.json')] })")
+      commandLine(nodeBinary, "--print", "require.resolve('expo-modules-autolinking/package.json', { paths: [require.resolve('expo/package.json')] })")
     }.standardOutput.asText.get().trim(),
     "../android/expo-gradle-plugin"
   ).absolutePath
