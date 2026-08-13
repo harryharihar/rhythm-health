@@ -3,7 +3,8 @@ import { Alert, Linking } from 'react-native';
 import { useHealth } from '../../store/healthStore';
 import { requestNotificationPermissions } from '../../notifications/setup';
 import { LABELS } from '../../constants/labels';
-import { bmiCategories, bmiCategoryFor, computeBmi, getDbSizeMb, getInitials, GOAL_META } from './profileCalculations';
+import { getDbSizeMb, getInitials, GOAL_META } from './profileCalculations';
+import { bmiCategories, bmiCategoryFor, computeBmi } from '../../utils/healthCalculations';
 import type { Gender, Reminder, ReminderCategory, ReminderMode } from '../../types/models';
 
 interface EditFields {

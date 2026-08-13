@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { spacing } from '../../theme/theme';
+import { glow, radius, spacing } from '../../theme/theme';
 
 export const makeStyles = (colors) =>
   StyleSheet.create({
@@ -21,9 +21,47 @@ export const makeStyles = (colors) =>
     },
     avatarText: { color: colors.onAccent, fontWeight: '800', fontSize: 15 },
 
+    bmiBannerCard: { borderWidth: 1.5 },
+    bmiBannerHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
+    bmiBannerIconWrap: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+    bmiBannerTitle: { fontSize: 15, fontWeight: '800', color: colors.ink, marginBottom: 4 },
+    bmiBannerBody: { fontSize: 12.5, color: colors.inkSoft, lineHeight: 18, marginBottom: spacing.md },
+    bmiBannerCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 999, paddingVertical: 11 },
+    bmiBannerCtaText: { color: colors.onAccent, fontWeight: '800', fontSize: 13 },
+
     heroCard: { flexDirection: 'row', alignItems: 'center' },
+    heroCardAchieved: {
+      borderRadius: radius.lg,
+      borderWidth: 1.5,
+      borderColor: colors.primary,
+      ...glow(colors.primary, 16, 0.35),
+    },
     heroText: { flex: 1, marginLeft: spacing.md },
     heroTitle: { fontSize: 16, fontWeight: '800', color: colors.ink, marginBottom: 4 },
+    heroTitleAchieved: { color: colors.primary },
+
+    todaysProgressLabel: {
+      fontSize: 10.5,
+      fontWeight: '700',
+      color: colors.inkSoft,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginTop: spacing.md,
+      paddingTop: spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: colors.line,
+      marginBottom: spacing.sm,
+    },
+    goalBreakdownRow: {
+      flexDirection: 'row',
+      gap: spacing.md,
+    },
+    goalBreakdownItem: { flex: 1 },
+    goalBreakdownHeader: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
+    goalBreakdownPct: { fontSize: 11.5, fontWeight: '800' },
+    goalBreakdownTrack: { height: 4, borderRadius: 2, overflow: 'hidden' },
+    goalBreakdownFill: { height: '100%', borderRadius: 2 },
+    goalBreakdownLabel: { fontSize: 10, color: colors.inkSoft, fontWeight: '600', marginTop: 3 },
     heroDesc: { fontSize: 12.5, color: colors.inkSoft, lineHeight: 18 },
 
     grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
@@ -83,4 +121,29 @@ export const makeStyles = (colors) =>
     },
     addBtnLabel: { color: colors.water, fontWeight: '700', fontSize: 12.5 },
     sparklineWrap: { marginTop: spacing.sm },
+
+    weightValueRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+    deltaPill: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
+    deltaPillText: { fontSize: 10.5, fontWeight: '800' },
+    bmiPill: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
+    bmiPillText: { fontSize: 10.5, fontWeight: '800' },
+    bmiScaleWrap: { marginTop: spacing.sm },
+    bmiScaleBar: { flexDirection: 'row', height: 6, borderRadius: 3, overflow: 'hidden', gap: 2 },
+    bmiScaleSeg: { flex: 1, height: '100%' },
+    bmiScaleRange: { fontSize: 10.5, color: colors.inkSoft, fontWeight: '600', marginTop: 5 },
+    captionMuted: { fontSize: 11.5, color: colors.inkFaint, fontWeight: '500', marginTop: spacing.xs },
+    weightEmptyState: { alignItems: 'center', paddingVertical: spacing.sm, gap: 6 },
+
+    waterLogRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 9,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.line,
+      gap: spacing.sm,
+    },
+    noBorder: { borderBottomWidth: 0 },
+    waterLogDot: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+    waterLogTime: { flex: 1, fontSize: 13, fontWeight: '600', color: colors.ink },
+    waterLogAmount: { fontSize: 13, fontWeight: '700', color: colors.water },
   });

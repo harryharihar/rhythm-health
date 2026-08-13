@@ -5,8 +5,15 @@ import { LABELS } from '../../constants/labels';
 // Each range computes its own buckets (day/week/month granularity — a full
 // year as 365 daily points would be unreadable) plus how many real days it
 // spans, so the "Avg/day" figure stays accurate regardless of bucket size.
+// "Today"/"Yesterday" aren't actually separate 1-point charts — a single
+// dot has nothing to show a trend against — they show the same full week as
+// "This Week", just pre-highlighting a different point in it (see
+// `highlightOffset`, read by useActivityScreen to pick which bucket from
+// the end gets the light "selected" marker: 0 = today, 1 = yesterday).
 export const RANGE_OPTIONS = [
-  { key: 'week', label: LABELS.activity.rangeThisWeek, icon: 'today-outline', totalDays: 7, getBuckets: () => dayBuckets(7, 0, 'narrow') },
+  { key: 'today', label: LABELS.activity.rangeToday, icon: 'sunny-outline', totalDays: 7, highlightOffset: 0, getBuckets: () => dayBuckets(7, 0, 'narrow') },
+  { key: 'yesterday', label: LABELS.activity.rangeYesterday, icon: 'arrow-undo-outline', totalDays: 7, highlightOffset: 1, getBuckets: () => dayBuckets(7, 0, 'narrow') },
+  { key: 'week', label: LABELS.activity.rangeThisWeek, icon: 'today-outline', totalDays: 7, highlightOffset: 0, getBuckets: () => dayBuckets(7, 0, 'narrow') },
   { key: 'lastWeek', label: LABELS.activity.rangeLastWeek, icon: 'arrow-undo-outline', totalDays: 7, getBuckets: () => dayBuckets(7, 7, 'narrow') },
   { key: '2weeks', label: LABELS.activity.range2Weeks, icon: 'calendar-outline', totalDays: 14, getBuckets: () => dayBuckets(14, 0, 'narrow') },
   { key: 'month', label: LABELS.activity.range1Month, icon: 'calendar-number-outline', totalDays: 30, getBuckets: () => weekBuckets(4) },

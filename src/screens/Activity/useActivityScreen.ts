@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useHealth } from '../../store/healthStore';
 import { useHealthKitData } from '../../health/useHealthKitData';
-import { isSameDay, sumByBuckets, todayKey } from '../../utils/dateUtils';
+import { formatFriendlyDate, isSameDay, sumByBuckets, todayKey } from '../../utils/dateUtils';
 import {
   estimateCaloriesFromSteps,
   estimateCaloriesPerKm,
@@ -49,6 +49,33 @@ export function useActivityScreen() {
 
   const range = RANGE_OPTIONS.find((r) => r.key === rangeKey) || RANGE_OPTIONS[0];
   const chartData = useMemo(() => sumByBuckets(steps, range.getBuckets(), 'count'), [steps, rangeKey]);
+  // Which point on the Steps Trend chart is shown below it — defaults to
+  // `highlightOffset` buckets from the end (0 = most recent/today, 1 =
+  // yesterday, for the "Today"/"Yesterday" range shortcuts) and resets
+  // there whenever the range picker changes, since the old index may no
+  // longer exist (e.g. going from 7 buckets to fewer).
+  const [selectedChartIndex, setSelectedChartIndex] = useState(chartData.length - 1 - (range.highlightOffset || 0));
+  useEffect(() => {
+    setSelectedChartIndex(chartData.length - 1 - (range.highlightOffset || 0));
+  }, [rangeKey]);
+  const selectedChartPoint = chartData[selectedChartIndex] ?? chartData[chartData.length - 1] ?? null;
+  // Day-granularity buckets key on the real "YYYY-MM-DD" date (see
+  // sumByBuckets/dayBuckets), so a proper date can be shown instead of the
+  // chart's narrow single-letter weekday label ("T" alone doesn't say which
+  // day). Week/month buckets use different key shapes ("w0", "2026-7") —
+  // their existing label ("Aug 2", "Jan") is already descriptive enough.
+  const selectedDayDateLabel =
+    selectedChartPoint && /^\d{4}-\d{2}-\d{2}$/.test(selectedChartPoint.key)
+      ? // Parsed from explicit Y/M/D components (local time), not
+        // `new Date(isoDateString)` — that parses as UTC midnight, which
+        // shifts to the wrong calendar day in negative-UTC-offset timezones.
+        formatFriendlyDate(
+          (() => {
+            const [y, m, d] = selectedChartPoint.key.split('-').map(Number);
+            return new Date(y, m - 1, d);
+          })()
+        )
+      : selectedChartPoint?.label;
   const avgPerDay = useMemo(
     () => Math.round(chartData.reduce((acc, d) => acc + d.value, 0) / range.totalDays),
     [chartData, range.totalDays]
@@ -169,6 +196,9 @@ export function useActivityScreen() {
     todayCount,
     range,
     chartData,
+    selectedChartIndex, setSelectedChartIndex,
+    selectedChartPoint,
+    selectedDayDateLabel,
     avgPerDay,
     hasWorkoutsInRange,
     avgActiveMinPerDay,

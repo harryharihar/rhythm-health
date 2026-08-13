@@ -1,4 +1,5 @@
 import React from 'react';
+import { Pressable } from 'react-native';
 import Svg, { Circle, Line, Polyline } from 'react-native-svg';
 
 // Minimal line chart: given an array of numbers, draws a single polyline
@@ -13,6 +14,14 @@ interface SparklineProps {
   dots?: boolean;
   refValue?: number | null;
   refColor?: string;
+  // Marks one point as "selected" (e.g. the day a caption below the chart
+  // is currently describing) with a light hollow ring rather than just a
+  // bigger same-color dot, so it reads as "this one" instead of "this one
+  // matters more". Tapping anywhere on the chart calls onSelectIndex with
+  // the nearest point, so the two stay in sync.
+  highlightIndex?: number | null;
+  highlightFillColor?: string;
+  onSelectIndex?: (index: number) => void;
 }
 
 export default function Sparkline({
@@ -24,21 +33,34 @@ export default function Sparkline({
   dots = false,
   refValue = null,
   refColor,
+  highlightIndex = null,
+  highlightFillColor = '#fff',
+  onSelectIndex,
 }: SparklineProps) {
-  if (!data || data.length < 2) return null;
+  if (!data || data.length === 0) return null;
 
   const values = refValue != null ? [...data, refValue] : data;
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
-  const stepX = width / (data.length - 1);
+  // A single day (e.g. Today/Yesterday) has nothing to draw a line between —
+  // stepX would divide by zero for one point anyway — so it's shown as a
+  // single centered dot instead of a polyline.
+  const stepX = data.length > 1 ? width / (data.length - 1) : 0;
   const pad = strokeWidth + (dots ? 3 : 0);
 
   const toY = (v: number) => pad + (1 - (v - min) / range) * (height - pad * 2);
 
   const points = data.map((v, i) => `${i * stepX},${toY(v)}`).join(' ');
 
-  return (
+  const handlePress = (e: any) => {
+    if (!onSelectIndex) return;
+    const x = e.nativeEvent.locationX;
+    const index = data.length > 1 ? Math.round(x / stepX) : 0;
+    onSelectIndex(Math.max(0, Math.min(data.length - 1, index)));
+  };
+
+  const chart = (
     <Svg width={width} height={height}>
       {refValue != null ? (
         <Line
@@ -51,10 +73,26 @@ export default function Sparkline({
           strokeDasharray="4,4"
         />
       ) : null}
-      <Polyline points={points} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-      {dots
-        ? data.map((v, i) => <Circle key={i} cx={i * stepX} cy={toY(v)} r={3} fill={color} />)
-        : null}
+      {data.length > 1 ? (
+        <Polyline points={points} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      ) : null}
+      {data.length === 1 ? (
+        <Circle cx={width / 2} cy={toY(data[0])} r={4} fill={color} />
+      ) : dots ? (
+        data.map((v, i) => <Circle key={i} cx={i * stepX} cy={toY(v)} r={3} fill={color} />)
+      ) : null}
+      {highlightIndex != null && data[highlightIndex] != null ? (
+        <Circle
+          cx={data.length > 1 ? highlightIndex * stepX : width / 2}
+          cy={toY(data[highlightIndex])}
+          r={6}
+          fill={highlightFillColor}
+          stroke={color}
+          strokeWidth={2.5}
+        />
+      ) : null}
     </Svg>
   );
+
+  return onSelectIndex ? <Pressable onPress={handlePress}>{chart}</Pressable> : chart;
 }

@@ -1,16 +1,21 @@
-export function calculateBMI(weightKg, heightCm) {
-  if (!weightKg || !heightCm) return null;
-  const heightM = heightCm / 100;
-  const bmi = weightKg / (heightM * heightM);
-  return Math.round(bmi * 10) / 10;
+import { LABELS } from '../constants/labels';
+
+export function computeBmi(heightCm, weightKg) {
+  if (!heightCm || !weightKg) return null;
+  const m = heightCm / 100;
+  return (weightKg / (m * m)).toFixed(1);
 }
 
-export function bmiCategory(bmi) {
-  if (bmi == null) return '—';
-  if (bmi < 18.5) return 'Underweight';
-  if (bmi < 25) return 'Normal';
-  if (bmi < 30) return 'Overweight';
-  return 'Higher range';
+export const bmiCategories = (colors) => [
+  { label: LABELS.profile.bmiUnderweight, range: LABELS.profile.bmiUnderweightRange, min: -Infinity, max: 18.5, color: colors.water },
+  { label: LABELS.profile.bmiNormal, range: LABELS.profile.bmiNormalRange, min: 18.5, max: 25, color: colors.primary },
+  { label: LABELS.profile.bmiOverweight, range: LABELS.profile.bmiOverweightRange, min: 25, max: 30, color: colors.steps },
+  { label: LABELS.profile.bmiObese, range: LABELS.profile.bmiObeseRange, min: 30, max: Infinity, color: colors.danger },
+];
+
+export function bmiCategoryFor(bmiValue, categories) {
+  const n = Number(bmiValue);
+  return categories.find((c) => n >= c.min && n < c.max);
 }
 
 // Very rough estimate: ~0.04 kcal per step, adjustable later per user weight.

@@ -75,6 +75,9 @@ export const LABELS = {
     vitalityReasonWater: 'Hydration is on track today.',
     vitalityReasonSteps: "You've already hit your step goal.",
     vitalityReasonDefault: 'Keep logging to build momentum.',
+    goalsAchievedTitle: 'Goals Crushed! 🎉',
+    goalsAchievedNote: "You've hit both your water and step goals today — great work.",
+    todaysProgress: "Today's Progress",
     steps: 'Steps',
     autoTracked: 'Auto-tracked',
     calories: 'Calories',
@@ -94,6 +97,7 @@ export const LABELS = {
     weeklyActivity: 'Weekly Activity',
     dailyAverage: 'Daily Average',
     sleepAnalysis: 'Sleep Analysis',
+    sleepShort: 'Sleep',
     stageDeep: 'Deep',
     stageLight: 'Light',
     stageRem: 'REM',
@@ -104,6 +108,13 @@ export const LABELS = {
     addQuick250: '+ Add 250ml',
     weightTrend: 'Weight Trend',
     last7Logs: 'Last 7 logs',
+    weightTrendNeedMore: 'Log again to see your trend',
+    noWeightLogged: 'No weight logged yet',
+    todaysWaterLog: "Today's Water Log",
+    bmiBannerTitle: "Let's work toward a healthier range 💪",
+    bmiBannerBody:
+      "Your BMI is currently in the {category} range. Set a weight goal in your Profile and we'll help you track progress toward it.",
+    bmiBannerCta: 'Set a Goal in Profile',
   },
 
   sleep: {
@@ -161,6 +172,8 @@ export const LABELS = {
   },
 
   activity: {
+    rangeToday: 'Today',
+    rangeYesterday: 'Yesterday',
     rangeThisWeek: 'This Week',
     rangeLastWeek: 'Last Week',
     range2Weeks: '2 Weeks',
@@ -181,9 +194,10 @@ export const LABELS = {
     heroDescStepsOnly: "You have achieved {pct}% of your movement goal, averaged over {range}. Log a workout below to boost today's active minutes.",
     stepsTrend: 'Steps Trend',
     avgPerDay: 'Avg: {avg}/day',
+    stepsOnSelectedDay: 'steps on {date}',
     workouts: 'Workouts',
     logWorkout: 'Log Workout',
-    rangeNote: "Entries always save to today's date — switch to This Week to log a new workout.",
+    rangeNote: "Entries always save to today's date — switch to Today, Yesterday, or This Week to log a new workout.",
     emptyWorkoutsWeek: 'No workouts logged for this week — tap "Log Workout" to add one.',
     emptyWorkoutsRange: 'No workouts logged for {range}.',
     logStepsTitle: 'Log steps',

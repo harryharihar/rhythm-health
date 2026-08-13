@@ -59,7 +59,18 @@ export const makeStyles = (colors) =>
     breakdownValue: { flex: 1, fontSize: 12, fontWeight: '600', color: colors.inkSoft, textAlign: 'right' },
     caption: { fontSize: 11.5, color: colors.inkSoft, fontWeight: '600' },
     axisRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.xs, paddingHorizontal: 4 },
+    axisLabelBtn: { flex: 1, alignItems: 'center', paddingVertical: 4 },
     axisLabel: { fontSize: 10, color: colors.inkSoft, fontWeight: '600' },
+    selectedDayRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      justifyContent: 'center',
+      marginTop: spacing.sm,
+      paddingTop: spacing.sm,
+      borderTopWidth: 1,
+    },
+    selectedDayValue: { fontSize: 20, fontWeight: '800', color: colors.ink, fontVariant: ['tabular-nums'] },
+    selectedDayLabel: { fontSize: 12, color: colors.inkSoft, fontWeight: '600' },
 
     listHeading: { fontSize: 16, fontWeight: '800', color: colors.ink },
     logBtn: {

@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
-import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { Alert, Animated, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import RingGauge from '../../components/RingGauge';
@@ -9,8 +10,9 @@ import Card from '../../components/Card';
 import WeekBars from '../../components/WeekBars';
 import { useThemeColors } from '../../theme/useTheme';
 import { formatFriendlyDate, formatHoursMinutes, greeting } from '../../utils/dateUtils';
-import { iconForType } from '../../utils/healthCalculations';
+import { bmiCategories, iconForType } from '../../utils/healthCalculations';
 import { LABELS } from '../../constants/labels';
+import { ROUTES } from '../../navigation/routes';
 import { useHomeScreen } from './useHomeScreen';
 import { makeStyles } from './HomeScreen.styles';
 
@@ -25,6 +27,7 @@ function withAlpha(hex, alpha) {
 export default function HomeScreen() {
   const colors = useThemeColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const navigation = useNavigation();
   const {
     profile,
     todayTotals,
@@ -38,6 +41,13 @@ export default function HomeScreen() {
     scorePct,
     vitalityLabel,
     vitalityNote,
+    dailyGoalsAchieved,
+    stepsProgress,
+    waterProgress,
+    sleepProgress,
+    stepsGoalAchieved,
+    waterGoalAchieved,
+    sleepGoalAchieved,
     weekSteps,
     dailyAvgPct,
     calories,
@@ -52,12 +62,36 @@ export default function HomeScreen() {
     fillPct,
     waterLitres,
     waterGoalLitres,
+    todayWaterLogs,
     weightValues,
     weightDelta,
+    bmiCategory,
+    bmiBannerVisible,
+    dismissBmiBanner,
     addWater,
-  } = useHomeScreen();
+  } = useHomeScreen(colors);
 
   const deltaColor = weightDelta == null ? colors.inkSoft : weightDelta < 0 ? colors.primary : weightDelta > 0 ? colors.steps : colors.inkSoft;
+
+  // Gentle "breathing" pulse on the hero card while goals are achieved —
+  // starts/stops as that flips, rather than running the loop always and
+  // just hiding it, so it's not silently animating in the background the
+  // rest of the time.
+  const celebrationScale = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (!dailyGoalsAchieved) {
+      celebrationScale.setValue(1);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(celebrationScale, { toValue: 1.025, duration: 700, useNativeDriver: true }),
+        Animated.timing(celebrationScale, { toValue: 1, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [dailyGoalsAchieved]);
 
   return (
     <View style={styles.flex}>
@@ -73,21 +107,74 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <Card contentStyle={styles.heroCard}>
-          <RingGauge
-            progress={overallProgress}
-            size={100}
-            strokeWidth={10}
-            color={colors.primary}
-            trackColor={colors.line}
-            centerValue={`${scorePct}%`}
-            centerLabel={LABELS.home.score}
-          />
-          <View style={styles.heroText}>
-            <Text style={styles.heroTitle}>{vitalityLabel}</Text>
-            <Text style={styles.heroDesc}>{vitalityNote}</Text>
-          </View>
-        </Card>
+        {bmiBannerVisible && bmiCategory ? (
+          <Card style={[styles.bmiBannerCard, { borderColor: bmiCategory.color }]}>
+            <View style={styles.bmiBannerHeaderRow}>
+              <View style={[styles.bmiBannerIconWrap, { backgroundColor: withAlpha(bmiCategory.color, 0.16) }]}>
+                <Ionicons name="fitness-outline" size={18} color={bmiCategory.color} />
+              </View>
+              <TouchableOpacity onPress={dismissBmiBanner} hitSlop={8}>
+                <Ionicons name="close" size={18} color={colors.inkSoft} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.bmiBannerTitle}>{LABELS.home.bmiBannerTitle}</Text>
+            <Text style={styles.bmiBannerBody}>{LABELS.home.bmiBannerBody.replace('{category}', bmiCategory.label)}</Text>
+            <TouchableOpacity
+              style={[styles.bmiBannerCta, { backgroundColor: bmiCategory.color }]}
+              onPress={() => {
+                dismissBmiBanner();
+                navigation.navigate(ROUTES.PROFILE as never);
+              }}
+            >
+              <Text style={styles.bmiBannerCtaText}>{LABELS.home.bmiBannerCta}</Text>
+              <Ionicons name="arrow-forward" size={14} color={colors.onAccent} />
+            </TouchableOpacity>
+          </Card>
+        ) : null}
+
+        <Animated.View style={dailyGoalsAchieved ? { transform: [{ scale: celebrationScale }] } : undefined}>
+          <Card style={dailyGoalsAchieved ? styles.heroCardAchieved : undefined}>
+            <View style={styles.heroCard}>
+              <RingGauge
+                progress={overallProgress}
+                size={100}
+                strokeWidth={10}
+                color={colors.primary}
+                trackColor={colors.line}
+                centerValue={`${scorePct}%`}
+                centerLabel={LABELS.home.score}
+              />
+              <View style={styles.heroText}>
+                <Text style={[styles.heroTitle, dailyGoalsAchieved && styles.heroTitleAchieved]}>{vitalityLabel}</Text>
+                <Text style={styles.heroDesc}>{vitalityNote}</Text>
+              </View>
+            </View>
+            {/* Score above blends steps/water/sleep, so it can sit under
+                100% even once "Goals Crushed" (water+steps only) has fired
+                — this breaks out each goal's own progress so it's clear
+                this row is today's per-goal completion, not a repeat of
+                the score. */}
+            <Text style={styles.todaysProgressLabel}>{LABELS.home.todaysProgress}</Text>
+            <View style={styles.goalBreakdownRow}>
+              {[
+                { key: 'steps', icon: 'footsteps', label: LABELS.home.steps, color: colors.steps, pct: stepsProgress, achieved: stepsGoalAchieved },
+                { key: 'water', icon: 'water', label: LABELS.home.waterIntake, color: colors.water, pct: waterProgress, achieved: waterGoalAchieved },
+                { key: 'sleep', icon: 'moon', label: LABELS.home.sleepShort, color: colors.sleep, pct: sleepProgress, achieved: sleepGoalAchieved },
+              ].map((g) => (
+                <View key={g.key} style={styles.goalBreakdownItem}>
+                  <View style={styles.goalBreakdownHeader}>
+                    <Ionicons name={(g.achieved ? g.icon : `${g.icon}-outline`) as any} size={12} color={g.color} />
+                    <Text style={[styles.goalBreakdownPct, { color: g.color }]}>{Math.round(g.pct * 100)}%</Text>
+                  </View>
+                  <View style={[styles.goalBreakdownTrack, { backgroundColor: colors.line }]}>
+                    <View style={[styles.goalBreakdownFill, { width: `${g.pct * 100}%`, backgroundColor: g.color }]} />
+                  </View>
+                  <Text style={styles.goalBreakdownLabel}>{g.label}</Text>
+                </View>
+              ))}
+            </View>
+          </Card>
+        </Animated.View>
 
         <View style={styles.grid}>
           <StatCard icon="footsteps" dotColor={colors.danger} label={LABELS.home.steps} value={todayTotals.stepsCount.toLocaleString()} unit={`/${Math.round(goals.stepsGoal / 1000)}k`} caption={LABELS.home.autoTracked} />
@@ -201,21 +288,79 @@ export default function HomeScreen() {
           <Card style={styles.bottomCard}>
             <View style={styles.cardHeaderRow}>
               <Text style={styles.sectionTitle}>{LABELS.home.weightTrend}</Text>
-              {weightDelta != null ? (
-                <Text style={[styles.caption, { color: deltaColor, fontWeight: '800' }]}>
-                  {weightDelta > 0 ? '+' : ''}{weightDelta.toFixed(1)} kg
-                </Text>
-              ) : null}
+              <Ionicons name="body-outline" size={16} color={colors.primary} />
             </View>
-            <Text style={styles.bigValue}>{todayTotals.latestWeight ?? '—'} kg</Text>
-            <Text style={styles.caption}>{LABELS.home.last7Logs}</Text>
-            {weightValues.length >= 2 ? (
-              <View style={styles.sparklineWrap}>
-                <Sparkline data={weightValues} color={colors.primary} width={130} height={34} strokeWidth={2} />
+            {todayTotals.latestWeight != null ? (
+              <>
+                <View style={styles.weightValueRow}>
+                  <Text style={styles.bigValue}>{todayTotals.latestWeight} kg</Text>
+                  {weightDelta != null ? (
+                    <View style={[styles.deltaPill, { backgroundColor: withAlpha(deltaColor, 0.14) }]}>
+                      <Ionicons name={weightDelta < 0 ? 'trending-down' : weightDelta > 0 ? 'trending-up' : 'remove'} size={11} color={deltaColor} />
+                      <Text style={[styles.deltaPillText, { color: deltaColor }]}>
+                        {weightDelta > 0 ? '+' : ''}{weightDelta.toFixed(1)} kg
+                      </Text>
+                    </View>
+                  ) : null}
+                  {bmiCategory ? (
+                    <View style={[styles.bmiPill, { backgroundColor: withAlpha(bmiCategory.color, 0.14) }]}>
+                      <Text style={[styles.bmiPillText, { color: bmiCategory.color }]}>{bmiCategory.label}</Text>
+                    </View>
+                  ) : null}
+                </View>
+                {weightValues.length >= 2 ? (
+                  <>
+                    <Text style={styles.caption}>{LABELS.home.last7Logs}</Text>
+                    <View style={styles.sparklineWrap}>
+                      <Sparkline data={weightValues} color={colors.primary} width={130} height={34} strokeWidth={2} dots />
+                    </View>
+                  </>
+                ) : (
+                  <Text style={styles.captionMuted}>{LABELS.home.weightTrendNeedMore}</Text>
+                )}
+                {bmiCategory ? (
+                  <View style={styles.bmiScaleWrap}>
+                    <View style={styles.bmiScaleBar}>
+                      {bmiCategories(colors).map((c) => (
+                        <View
+                          key={c.label}
+                          style={[
+                            styles.bmiScaleSeg,
+                            { backgroundColor: c.label === bmiCategory.label ? c.color : withAlpha(c.color, 0.25) },
+                          ]}
+                        />
+                      ))}
+                    </View>
+                    <Text style={styles.bmiScaleRange}>{bmiCategory.label} · {bmiCategory.range}</Text>
+                  </View>
+                ) : null}
+              </>
+            ) : (
+              <View style={styles.weightEmptyState}>
+                <Ionicons name="body-outline" size={22} color={colors.inkFaint} />
+                <Text style={styles.captionMuted}>{LABELS.home.noWeightLogged}</Text>
               </View>
-            ) : null}
+            )}
           </Card>
         </View>
+
+        {todayWaterLogs.length > 0 ? (
+          <Card>
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.sectionTitle}>{LABELS.home.todaysWaterLog}</Text>
+              <Ionicons name="water-outline" size={16} color={colors.water} />
+            </View>
+            {todayWaterLogs.map((log, i) => (
+              <View key={log.id} style={[styles.waterLogRow, i === todayWaterLogs.length - 1 && styles.noBorder]}>
+                <View style={[styles.waterLogDot, { backgroundColor: colors.waterSoft }]}>
+                  <Ionicons name="water" size={12} color={colors.water} />
+                </View>
+                <Text style={styles.waterLogTime}>{log.timeLabel}</Text>
+                <Text style={styles.waterLogAmount}>{log.amountMl} ml</Text>
+              </View>
+            ))}
+          </Card>
+        ) : null}
       </ScrollView>
     </View>
   );

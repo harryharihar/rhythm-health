@@ -16,7 +16,10 @@ export function formatFriendlyDate(date = new Date()) {
 }
 
 export function formatShortTime(isoTimestamp) {
-  return new Date(isoTimestamp).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  // hour12 forced explicitly — same reasoning as formatClockLabel: some
+  // devices' locale/24-hour system setting makes this default to 24h even
+  // with `hour: 'numeric'`, which reads ambiguously in a log list.
+  return new Date(isoTimestamp).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 export function greeting(date = new Date()) {

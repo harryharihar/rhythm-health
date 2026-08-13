@@ -36,6 +36,9 @@ export default function ActivityScreen() {
     todayCount,
     range,
     chartData,
+    selectedChartIndex, setSelectedChartIndex,
+    selectedChartPoint,
+    selectedDayDateLabel,
     avgPerDay,
     avgActiveMinPerDay,
     hasWorkoutsInRange,
@@ -57,6 +60,12 @@ export default function ActivityScreen() {
     maxMet,
     calorieChartRows,
   } = useActivityScreen();
+
+  // A logged workout always saves with today's timestamp, so logging only
+  // makes sense while viewing a range that actually includes today —
+  // This Week, Today, and Yesterday's chart all do (see RANGE_OPTIONS),
+  // anything further back doesn't.
+  const canLogWorkout = rangeKey === 'week' || rangeKey === 'today' || rangeKey === 'yesterday';
 
   return (
     <View style={styles.flex}>
@@ -157,12 +166,35 @@ export default function ActivityScreen() {
             </TouchableOpacity>
           </View>
           <Text style={styles.caption}>{LABELS.activity.avgPerDay.replace('{avg}', avgPerDay.toLocaleString())}</Text>
-          <Sparkline data={chartData.map((d) => d.value)} color={colors.steps} width={280} height={90} strokeWidth={2.5} dots />
+          <Sparkline
+            data={chartData.map((d) => d.value)}
+            color={colors.steps}
+            width={280}
+            height={90}
+            strokeWidth={2.5}
+            dots
+            highlightIndex={selectedChartIndex}
+            highlightFillColor={colors.surface}
+            onSelectIndex={setSelectedChartIndex}
+          />
           <View style={styles.axisRow}>
-            {chartData.map((d) => (
-              <Text key={d.key} style={styles.axisLabel} numberOfLines={1}>{d.label}</Text>
+            {chartData.map((d, i) => (
+              <TouchableOpacity key={d.key} style={styles.axisLabelBtn} onPress={() => setSelectedChartIndex(i)}>
+                <Text style={[styles.axisLabel, i === selectedChartIndex && { color: colors.steps, fontWeight: '800' }]} numberOfLines={1}>
+                  {d.label}
+                </Text>
+              </TouchableOpacity>
             ))}
           </View>
+          {selectedChartPoint ? (
+            <View style={[styles.selectedDayRow, { borderTopColor: colors.line }]}>
+              <Text style={styles.selectedDayValue}>{selectedChartPoint.value.toLocaleString()}</Text>
+              <Text style={styles.selectedDayLabel}>
+                {' '}
+                {LABELS.activity.stepsOnSelectedDay.replace('{date}', selectedDayDateLabel || '')}
+              </Text>
+            </View>
+          ) : null}
         </Card>
 
         <View style={styles.cardHeaderRow}>
@@ -171,15 +203,15 @@ export default function ActivityScreen() {
             <Text style={styles.caption}>{range.label}</Text>
           </View>
           <TouchableOpacity
-            style={[styles.logBtn, rangeKey !== 'week' && styles.logBtnDisabled]}
+            style={[styles.logBtn, !canLogWorkout && styles.logBtnDisabled]}
             onPress={() => setWorkoutOpen(true)}
-            disabled={rangeKey !== 'week'}
+            disabled={!canLogWorkout}
           >
-            <Ionicons name="add" size={14} color={rangeKey !== 'week' ? colors.inkFaint : colors.steps} />
-            <Text style={[styles.logBtnText, rangeKey !== 'week' && styles.logBtnTextDisabled]}>{LABELS.activity.logWorkout}</Text>
+            <Ionicons name="add" size={14} color={!canLogWorkout ? colors.inkFaint : colors.steps} />
+            <Text style={[styles.logBtnText, !canLogWorkout && styles.logBtnTextDisabled]}>{LABELS.activity.logWorkout}</Text>
           </TouchableOpacity>
         </View>
-        {rangeKey !== 'week' && (
+        {!canLogWorkout && (
           <View style={styles.rangeNoteRow}>
             <Ionicons name="information-circle-outline" size={12} color={colors.inkSoft} />
             <Text style={styles.rangeNoteText}>{LABELS.activity.rangeNote}</Text>

@@ -34,24 +34,6 @@ export function getInitials(name) {
   return (first + last).toUpperCase();
 }
 
-export function computeBmi(heightCm, weightKg) {
-  if (!heightCm || !weightKg) return null;
-  const m = heightCm / 100;
-  return (weightKg / (m * m)).toFixed(1);
-}
-
-export const bmiCategories = (colors) => [
-  { label: LABELS.profile.bmiUnderweight, range: LABELS.profile.bmiUnderweightRange, min: -Infinity, max: 18.5, color: colors.water },
-  { label: LABELS.profile.bmiNormal, range: LABELS.profile.bmiNormalRange, min: 18.5, max: 25, color: colors.primary },
-  { label: LABELS.profile.bmiOverweight, range: LABELS.profile.bmiOverweightRange, min: 25, max: 30, color: colors.steps },
-  { label: LABELS.profile.bmiObese, range: LABELS.profile.bmiObeseRange, min: 30, max: Infinity, color: colors.danger },
-];
-
-export function bmiCategoryFor(bmiValue, categories) {
-  const n = Number(bmiValue);
-  return categories.find((c) => n >= c.min && n < c.max);
-}
-
 export const GOAL_META = {
   steps: { title: LABELS.profile.goalStepsTitle, icon: 'footsteps-outline', unit: LABELS.profile.goalStepsUnit, description: LABELS.profile.goalStepsDescription },
   water: { title: LABELS.profile.goalWaterTitle, icon: 'water-outline', unit: LABELS.profile.goalWaterUnit, description: LABELS.profile.goalWaterDescription },
