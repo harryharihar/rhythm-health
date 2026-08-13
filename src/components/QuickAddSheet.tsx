@@ -113,6 +113,7 @@ export default function QuickAddSheet({ visible, title, options, accentColor, on
       <View style={[styles.sheetWrap, keyboardHeight > 0 && { paddingBottom: keyboardHeight }]} pointerEvents="box-none">
         <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
           <SheetScroll
+            style={styles.sheetScroll}
             contentContainerStyle={StyleSheet.flatten(styles.sheetContent)}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -180,6 +181,13 @@ const makeStyles = (colors: any, accent: string) =>
       maxHeight: '100%',
       ...shadow.card,
     },
+    // `sheet`'s maxHeight only caps the box — without flexShrink here, the
+    // ScrollView child renders at its full content height regardless and
+    // just spills past that cap instead of clipping and scrolling within
+    // it. Same underlying bug as EntryDialog had (see its scrollView style
+    // comment) — this component just didn't have a form tall enough to
+    // expose it before the Add/Edit Reminder sheet.
+    sheetScroll: { flexShrink: 1 },
     sheetContent: {
       padding: spacing.xl,
       paddingBottom: spacing.xxl,

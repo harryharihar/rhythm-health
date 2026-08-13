@@ -4,7 +4,7 @@
 // the app removes this data.
 
 import * as SQLite from 'expo-sqlite';
-import type { Meal, Profile, Reminder, ReminderCategory, Settings, SleepLog, StepsLog, WaterLog, WeightLog, Workout } from '../types/models';
+import type { Meal, Profile, Reminder, ReminderCategory, ReminderMode, Settings, SleepLog, StepsLog, WaterLog, WeightLog, Workout } from '../types/models';
 
 // A single shared promise for the whole app, assigned synchronously on the
 // first call. Storage functions fire concurrently on startup (loadAll uses
@@ -106,7 +106,9 @@ async function runMigrations(db: SQLite.SQLiteDatabase) {
       id TEXT PRIMARY KEY,
       category TEXT,
       label TEXT,
+      mode TEXT,
       time TEXT,
+      intervalMinutes INTEGER,
       enabled INTEGER,
       timestamp TEXT
     );
@@ -115,6 +117,8 @@ async function runMigrations(db: SQLite.SQLiteDatabase) {
   // Columns added after the initial release — CREATE TABLE IF NOT EXISTS above
   // won't add them to tables that already exist on-device.
   await addColumnIfMissing(db, 'settings', 'notificationTime', 'TEXT');
+  await addColumnIfMissing(db, 'reminders', 'mode', 'TEXT');
+  await addColumnIfMissing(db, 'reminders', 'intervalMinutes', 'INTEGER');
   await addColumnIfMissing(db, 'profile', 'calorieGoal', 'INTEGER');
   await addColumnIfMissing(db, 'profile', 'proteinGoalG', 'REAL');
   await addColumnIfMissing(db, 'profile', 'carbsGoalG', 'REAL');
@@ -323,17 +327,28 @@ interface ReminderRow {
   timestamp: string;
   category: ReminderCategory;
   label: string;
-  time: string;
+  mode: ReminderMode;
+  time: string | null;
+  intervalMinutes: number | null;
   enabled: number;
 }
 
-const remindersTable = logTable<ReminderRow>('reminders', ['category', 'label', 'time', 'enabled']);
+const remindersTable = logTable<ReminderRow>('reminders', ['category', 'label', 'mode', 'time', 'intervalMinutes', 'enabled']);
 
 function rowToReminder(row: ReminderRow): Reminder {
-  return { id: row.id, timestamp: row.timestamp, category: row.category, label: row.label, time: row.time, enabled: !!row.enabled };
+  return {
+    id: row.id,
+    timestamp: row.timestamp,
+    category: row.category,
+    label: row.label,
+    mode: row.mode || 'daily',
+    time: row.time,
+    intervalMinutes: row.intervalMinutes,
+    enabled: !!row.enabled,
+  };
 }
 
-type ReminderInput = { category: ReminderCategory; label: string; time: string; enabled: boolean };
+type ReminderInput = { category: ReminderCategory; label: string; mode: ReminderMode; time: string | null; intervalMinutes: number | null; enabled: boolean };
 
 export const remindersStore = {
   async all(): Promise<Reminder[]> {

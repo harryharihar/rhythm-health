@@ -82,6 +82,7 @@ export default function EntryDialog({ visible, title, description, options, acce
           </View>
           {description ? <Text style={styles.description}>{description}</Text> : null}
           <ScrollView
+            style={styles.scrollView}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.scrollContent}
@@ -129,7 +130,15 @@ const makeStyles = (colors: any, accent: string) =>
       padding: spacing.xl,
     },
     backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.55)' },
-    avoidWrap: { width: '100%', alignItems: 'center', justifyContent: 'center' },
+    // `maxHeight: '100%'` only means something once every ancestor up to a
+    // real pixel height (overlay, absolutely filled to the screen) also
+    // declares it — otherwise each View just sizes to its content and the
+    // cap is a no-op. Without this, a dialog whose content happens to be
+    // taller than the screen (e.g. Add Reminder's 48-slot time grid) renders
+    // past the bottom edge with its pinned footer (the Save button)
+    // unreachable, since the inner ScrollView never gets a bounded box to
+    // clip/scroll within either.
+    avoidWrap: { width: '100%', maxHeight: '100%', alignItems: 'center', justifyContent: 'center' },
     card: {
       width: '100%',
       maxWidth: 420,
@@ -149,6 +158,11 @@ const makeStyles = (colors: any, accent: string) =>
     },
     title: { fontSize: 16, fontWeight: '700', color: colors.ink, flexShrink: 1, marginRight: spacing.md },
     description: { fontSize: 12.5, color: colors.inkSoft, fontWeight: '500', lineHeight: 18, marginBottom: spacing.md },
+    // `flexShrink: 1` is what actually lets the ScrollView compress to fit
+    // the now-bounded card instead of overflowing it — flexGrow alone
+    // (on scrollContent, its contentContainerStyle) only affects the inner
+    // content when it's shorter than the box, not the box's own sizing.
+    scrollView: { flexShrink: 1, width: '100%' },
     scrollContent: { flexGrow: 1, width: '100%' },
     footer: { marginTop: spacing.md },
 

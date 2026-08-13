@@ -165,7 +165,10 @@ export function formatClockLabel(hhmm) {
   const [h, m] = hhmm.split(':').map(Number);
   const d = new Date();
   d.setHours(h, m, 0, 0);
-  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  // hour12 forced explicitly — some devices' locale/24-hour system setting
+  // makes toLocaleTimeString default to 24h even with `hour: 'numeric'`,
+  // which reads ambiguously (e.g. "10:00" — AM or PM?) in a reminders list.
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 // 8:00 PM through 2:00 AM, 30-minute steps.
@@ -205,6 +208,29 @@ export function timeOptions() {
   }
   return times;
 }
+
+// Hour chips ("8 AM", "1 PM", ...) for a [startHour, endHour] window
+// (inclusive, wraps past midnight the same way bedtimeOptions() does —
+// e.g. 20-26 means 8 PM through 2 AM) — pairs with MINUTE_OPTIONS as a
+// compact two-step alternative to timeOptions()'s 48-chip flat grid.
+// Defaults to the full day when no window is given.
+export function hourOptions(startHour = 0, endHour = 23) {
+  const hours = [];
+  for (let h = startHour; h <= endHour; h++) {
+    const h24 = h % 24;
+    const hh = String(h24).padStart(2, '0');
+    const d = new Date();
+    d.setHours(h24, 0, 0, 0);
+    hours.push({ value: hh, label: d.toLocaleTimeString(undefined, { hour: 'numeric', hour12: true }) });
+  }
+  return hours;
+}
+
+// 5-minute steps across the hour (:00 through :55).
+export const MINUTE_OPTIONS = Array.from({ length: 12 }, (_, i) => {
+  const mm = String(i * 5).padStart(2, '0');
+  return { value: mm, label: `:${mm}` };
+});
 
 // Minutes from `actualHHMM` to `goalHHMM` as times-of-day, wrapped to the
 // shorter direction across midnight (so 11:50 PM vs 12:10 AM reads as 20

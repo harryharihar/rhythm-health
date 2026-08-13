@@ -20,13 +20,13 @@ import { watchTodaySteps } from '../utils/pedometer';
 import { getStepsResetOffset, setStepsResetOffset } from '../utils/stepsOffset';
 import { hasNotificationPermission } from '../notifications/setup';
 import { cancelAllReminders, rescheduleAllReminders } from '../notifications/scheduler';
-import type { Meal, Profile, ProfileGoals, Reminder, ReminderCategory, Settings, SleepLog, StepsLog, TodayTotals, WaterLog, WeightLog, Workout } from '../types/models';
+import type { Meal, Profile, ProfileGoals, Reminder, ReminderCategory, ReminderMode, Settings, SleepLog, StepsLog, TodayTotals, WaterLog, WeightLog, Workout } from '../types/models';
 
 // Started by initialize() below; kept outside the store since it's a
 // subscription handle, not app state.
 let stopAutoSteps: (() => void) | null = null;
 
-type ReminderInput = { category: ReminderCategory; label: string; time: string; enabled: boolean };
+type ReminderInput = { category: ReminderCategory; label: string; mode: ReminderMode; time: string | null; intervalMinutes: number | null; enabled: boolean };
 
 export interface HealthState {
   loading: boolean;

@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Alert, Linking } from 'react-native';
 import { useHealth } from '../../store/healthStore';
-import { exportAllData } from '../../storage/storage';
 import { requestNotificationPermissions } from '../../notifications/setup';
 import { LABELS } from '../../constants/labels';
 import { bmiCategories, bmiCategoryFor, computeBmi, getDbSizeMb, getInitials, GOAL_META } from './profileCalculations';
-import type { Gender, Reminder, ReminderCategory } from '../../types/models';
+import type { Gender, Reminder, ReminderCategory, ReminderMode } from '../../types/models';
 
 interface EditFields {
   name: string;
@@ -19,10 +18,21 @@ interface ReminderForm {
   id: string | null;
   category: ReminderCategory;
   label: string;
+  mode: ReminderMode;
   time: string;
+  intervalMinutes: number;
 }
 
-const NEW_REMINDER_FORM: ReminderForm = { id: null, category: 'water', label: '', time: '08:00' };
+// Defaults to 'interval' mode: the default category is water, and water's
+// whole point is "every N minutes" — starting it on the fixed-time picker
+// meant every fresh Add Reminder opened on the wrong mode for its own
+// default category.
+const NEW_REMINDER_FORM: ReminderForm = { id: null, category: 'water', label: '', mode: 'interval', time: '08:00', intervalMinutes: 30 };
+
+// Keeps the list manageable and the OS notification schedule reasonable —
+// Android's AlarmManager has its own per-app alarm quotas, and beyond ~10
+// reminders the list itself gets hard to scan anyway.
+export const MAX_REMINDERS = 10;
 
 // All state, derived data, and handlers for the Profile screen.
 export function useProfileScreen(colors: any) {
@@ -34,9 +44,12 @@ export function useProfileScreen(colors: any) {
   const [goalSheet, setGoalSheet] = useState(null); // 'steps' | 'water' | 'sleep' | null
   const [goalValue, setGoalValue] = useState('');
   const [reminderForm, setReminderForm] = useState<ReminderForm | null>(null);
+  const [reminderLabelError, setReminderLabelError] = useState(false);
   const [clockGoalSheet, setClockGoalSheet] = useState(null); // 'bedtime' | 'wakeTime' | null
   const [bmiInfoOpen, setBmiInfoOpen] = useState(false);
   const [docScreen, setDocScreen] = useState(null); // 'privacy' | 'terms' | null
+  const [maxRemindersOpen, setMaxRemindersOpen] = useState(false);
+  const [clearDataOpen, setClearDataOpen] = useState(false);
 
   const initials = profile ? getInitials(profile.name) : '?';
   const bmi = profile ? computeBmi(profile.heightCm, profile.weightKg) : null;
@@ -104,18 +117,45 @@ export function useProfileScreen(colors: any) {
     updateSettings({ remindersEnabled: true });
   };
 
-  const openAddReminder = () => setReminderForm(NEW_REMINDER_FORM);
-  const openEditReminder = (reminder: Reminder) =>
-    setReminderForm({ id: reminder.id, category: reminder.category, label: reminder.label, time: reminder.time });
+  const openAddReminder = () => {
+    if (reminders.length >= MAX_REMINDERS) {
+      setMaxRemindersOpen(true);
+      return;
+    }
+    setReminderLabelError(false);
+    setReminderForm(NEW_REMINDER_FORM);
+  };
+  const openEditReminder = (reminder: Reminder) => {
+    setReminderLabelError(false);
+    setReminderForm({
+      id: reminder.id,
+      category: reminder.category,
+      label: reminder.label,
+      mode: reminder.mode,
+      time: reminder.time || NEW_REMINDER_FORM.time,
+      intervalMinutes: reminder.intervalMinutes || NEW_REMINDER_FORM.intervalMinutes,
+    });
+  };
   const closeReminderSheet = () => setReminderForm(null);
 
   const saveReminder = () => {
-    if (!reminderForm || !reminderForm.label.trim()) return;
-    const { id, category, label, time } = reminderForm;
+    if (!reminderForm) return;
+    if (!reminderForm.label.trim()) {
+      setReminderLabelError(true);
+      return;
+    }
+    const { id, category, label, mode, time, intervalMinutes } = reminderForm;
+    const patch = {
+      category,
+      label: label.trim(),
+      mode,
+      time: mode === 'daily' ? time : null,
+      intervalMinutes: mode === 'interval' ? intervalMinutes : null,
+    };
     if (id) {
-      updateReminder(id, { category, label: label.trim(), time });
+      updateReminder(id, patch);
     } else {
-      addReminder({ category, label: label.trim(), time, enabled: true });
+      addReminder({ ...patch, enabled: true });
     }
     setReminderForm(null);
   };
@@ -129,29 +169,11 @@ export function useProfileScreen(colors: any) {
     updateReminder(reminder.id, { enabled: !reminder.enabled });
   };
 
-  const handleExport = async () => {
-    const data = await exportAllData();
-    Alert.alert(
-      LABELS.profile.exportPreviewTitle,
-      LABELS.profile.exportPreviewBody
-        .replace('{water}', String(data.water.length))
-        .replace('{sleep}', String(data.sleep.length))
-        .replace('{steps}', String(data.steps.length))
-        .replace('{weight}', String(data.weight.length))
-        .replace('{workouts}', String(data.workouts.length))
-        .replace('{meals}', String(data.meals.length))
-    );
-  };
+  const confirmClear = () => setClearDataOpen(true);
 
-  const confirmClear = () => {
-    Alert.alert(
-      LABELS.profile.clearDataConfirmTitle,
-      LABELS.profile.clearDataConfirmBody,
-      [
-        { text: LABELS.common.cancel, style: 'cancel' },
-        { text: LABELS.profile.clearDataConfirmAction, style: 'destructive', onPress: resetAllData },
-      ]
-    );
+  const performClearData = () => {
+    setClearDataOpen(false);
+    resetAllData();
   };
 
   return {
@@ -166,9 +188,12 @@ export function useProfileScreen(colors: any) {
     goalSheet, setGoalSheet,
     goalValue, setGoalValue,
     reminderForm, setReminderForm,
+    reminderLabelError, setReminderLabelError,
     clockGoalSheet, setClockGoalSheet,
     bmiInfoOpen, setBmiInfoOpen,
     docScreen, setDocScreen,
+    maxRemindersOpen, setMaxRemindersOpen,
+    clearDataOpen, setClearDataOpen,
     initials,
     bmi,
     categories,
@@ -187,7 +212,7 @@ export function useProfileScreen(colors: any) {
     deleteReminder,
     toggleReminderEnabled,
     handleToggleReminders,
-    handleExport,
     confirmClear,
+    performClearData,
   };
 }

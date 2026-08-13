@@ -6,14 +6,15 @@ import { Ionicons } from '@expo/vector-icons';
 import Card from '../../components/Card';
 import DocumentScreen from '../../components/DocumentScreen';
 import EntryDialog from '../../components/EntryDialog';
+import QuickAddSheet from '../../components/QuickAddSheet';
 import InfoModal from '../../components/InfoModal';
 import { PRIVACY_POLICY, TERMS_OF_SERVICE } from '../../data/policyContent';
 import { useThemeColors } from '../../theme/useTheme';
-import { bedtimeOptions, formatClockLabel, timeOptions, wakeTimeOptions } from '../../utils/dateUtils';
+import { bedtimeOptions, formatClockLabel, hourOptions, MINUTE_OPTIONS, wakeTimeOptions } from '../../utils/dateUtils';
 import { GENDER_OPTIONS } from '../../constants/genderOptions';
 import { LABELS } from '../../constants/labels';
-import { APP_VERSION, genderLabel, REMINDER_CATEGORIES } from './profileCalculations';
-import { useProfileScreen } from './useProfileScreen';
+import { APP_VERSION, genderLabel, INTERVAL_OPTIONS, CATEGORY_HOUR_RANGE, defaultTimeForCategory, formatIntervalLabel, reminderTimeLabel, REMINDER_CATEGORIES, supportsInterval, timeInCategoryRange } from './profileCalculations';
+import { useProfileScreen, MAX_REMINDERS } from './useProfileScreen';
 import { makeStyles } from './ProfileScreen.styles';
 import type { IconName, Reminder } from '../../types/models';
 
@@ -32,9 +33,12 @@ export default function ProfileScreen() {
     goalSheet, setGoalSheet,
     goalValue, setGoalValue,
     reminderForm, setReminderForm,
+    reminderLabelError, setReminderLabelError,
     clockGoalSheet, setClockGoalSheet,
     bmiInfoOpen, setBmiInfoOpen,
     docScreen, setDocScreen,
+    maxRemindersOpen, setMaxRemindersOpen,
+    clearDataOpen, setClearDataOpen,
     initials,
     bmi,
     categories,
@@ -53,8 +57,8 @@ export default function ProfileScreen() {
     deleteReminder,
     toggleReminderEnabled,
     handleToggleReminders,
-    handleExport,
     confirmClear,
+    performClearData,
   } = useProfileScreen(colors);
 
   const reminderCategories = REMINDER_CATEGORIES(colors);
@@ -151,6 +155,9 @@ export default function ProfileScreen() {
         </Card>
 
         <SectionLabel styles={styles} colors={colors} icon="alarm-outline" text={LABELS.notifications.sectionReminders} />
+        <Text style={styles.remindersSectionInfo}>
+          {LABELS.notifications.remindersSectionInfo.replace('{count}', String(reminders.length))}
+        </Text>
         <Card>
           {reminders.length === 0 ? (
             <Text style={styles.emptyRemindersText}>{LABELS.notifications.emptyReminders}</Text>
@@ -169,7 +176,7 @@ export default function ProfileScreen() {
                   onPress={() => openEditReminder(reminder)}
                   right={
                     <View style={styles.reminderRowRight}>
-                      <Text style={styles.rowRightValue}>{formatClockLabel(reminder.time)}</Text>
+                      <Text style={styles.rowRightValue}>{reminderTimeLabel(reminder, formatClockLabel)}</Text>
                       <Switch
                         value={reminder.enabled}
                         onValueChange={() => toggleReminderEnabled(reminder)}
@@ -182,16 +189,18 @@ export default function ProfileScreen() {
               );
             })
           )}
-          <SettingRow
-            styles={styles}
-            colors={colors}
-            icon="add-circle-outline"
-            iconColor={colors.primary}
-            iconBg={colors.primarySoft}
-            label={LABELS.notifications.addReminder}
-            last
-            onPress={openAddReminder}
-          />
+          <View style={reminders.length >= MAX_REMINDERS ? styles.disabledRow : undefined}>
+            <SettingRow
+              styles={styles}
+              colors={colors}
+              icon="add-circle-outline"
+              iconColor={colors.primary}
+              iconBg={colors.primarySoft}
+              label={LABELS.notifications.addReminder}
+              last
+              onPress={openAddReminder}
+            />
+          </View>
         </Card>
 
         <SectionLabel styles={styles} colors={colors} icon="flag-outline" text={LABELS.profile.sectionGoals} />
@@ -252,7 +261,6 @@ export default function ProfileScreen() {
         <SectionLabel styles={styles} colors={colors} icon="server-outline" text={LABELS.profile.sectionDataStorage} />
         <Card>
           <SettingRow styles={styles} colors={colors} icon="save-outline" label={LABELS.profile.storageUsed} value={dbSizeMb != null ? `${dbSizeMb.toFixed(1)} MB` : '—'} />
-          <SettingRow styles={styles} colors={colors} icon="download-outline" label={LABELS.profile.exportData} onPress={handleExport} />
           <SettingRow
             styles={styles}
             colors={colors}
@@ -399,34 +407,30 @@ export default function ProfileScreen() {
         onClose={() => setClockGoalSheet(null)}
       />
 
-      <EntryDialog
+      <QuickAddSheet
         visible={!!reminderForm}
         title={reminderForm?.id ? LABELS.notifications.editReminderTitle : LABELS.notifications.addReminderTitle}
         accentColor={reminderCategoryMeta(reminderForm?.category || 'water').color}
         onClose={closeReminderSheet}
-        footer={
-          <View style={styles.reminderFooter}>
-            <TouchableOpacity
-              style={[styles.submitBtn, { backgroundColor: reminderCategoryMeta(reminderForm?.category || 'water').color }]}
-              onPress={saveReminder}
-            >
-              <Text style={styles.submitLabel}>{LABELS.common.save}</Text>
-            </TouchableOpacity>
-            {reminderForm?.id ? (
-              <TouchableOpacity style={styles.deleteReminderBtn} onPress={deleteReminder}>
-                <Text style={styles.deleteReminderLabel}>{LABELS.notifications.deleteReminder}</Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
-        }
       >
         <LabeledField styles={styles} label={LABELS.notifications.categoryLabel}>
           <View style={styles.genderRow}>
-            {reminderCategories.map((cat) => (
+            {(reminderForm?.id ? reminderCategories.filter((cat) => cat.value === reminderForm.category) : reminderCategories).map((cat) => (
               <TouchableOpacity
                 key={cat.value}
                 style={[styles.genderChip, reminderForm?.category === cat.value && { backgroundColor: cat.soft, borderColor: cat.color }]}
-                onPress={() => setReminderForm((f) => (f ? { ...f, category: cat.value } : f))}
+                onPress={() =>
+                  setReminderForm((f) =>
+                    f
+                      ? {
+                          ...f,
+                          category: cat.value,
+                          mode: supportsInterval(cat.value) ? f.mode : 'daily',
+                          time: timeInCategoryRange(f.time, cat.value) ? f.time : defaultTimeForCategory(cat.value),
+                        }
+                      : f
+                  )
+                }
               >
                 <Text style={[styles.genderChipText, reminderForm?.category === cat.value && { color: cat.color }]}>{cat.label}</Text>
               </TouchableOpacity>
@@ -435,31 +439,110 @@ export default function ProfileScreen() {
         </LabeledField>
         <LabeledField styles={styles} label={LABELS.notifications.reminderNameLabel}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, reminderLabelError && styles.inputError]}
             placeholder={LABELS.notifications.reminderNamePlaceholder}
             placeholderTextColor={colors.inkFaint}
             value={reminderForm?.label || ''}
-            onChangeText={(v) => setReminderForm((f) => (f ? { ...f, label: v } : f))}
+            onChangeText={(v) => {
+              setReminderLabelError(false);
+              setReminderForm((f) => (f ? { ...f, label: v } : f));
+            }}
           />
+          {reminderLabelError ? <Text style={styles.errorText}>{LABELS.notifications.reminderNameRequired}</Text> : null}
         </LabeledField>
-        <LabeledField styles={styles} label={LABELS.notifications.timeLabel}>
-          <View style={styles.genderRow}>
-            {timeOptions().map((t) => {
-              const active = reminderForm?.time === t.value;
-              const meta = reminderCategoryMeta(reminderForm?.category || 'water');
-              return (
-                <TouchableOpacity
-                  key={t.value}
-                  style={[styles.genderChip, active && { backgroundColor: meta.soft, borderColor: meta.color }]}
-                  onPress={() => setReminderForm((f) => (f ? { ...f, time: t.value } : f))}
-                >
-                  <Text style={[styles.genderChipText, active && { color: meta.color }]}>{t.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </LabeledField>
-      </EntryDialog>
+        {supportsInterval(reminderForm?.category || 'water') ? (
+          <LabeledField styles={styles} label={LABELS.notifications.repeatLabel}>
+            <View style={styles.genderRow}>
+              {([
+                { value: 'daily' as const, label: LABELS.notifications.modeDaily },
+                { value: 'interval' as const, label: LABELS.notifications.modeInterval },
+              ]).map((m) => {
+                const active = reminderForm?.mode === m.value;
+                const meta = reminderCategoryMeta(reminderForm?.category || 'water');
+                return (
+                  <TouchableOpacity
+                    key={m.value}
+                    style={[styles.genderChip, active && { backgroundColor: meta.soft, borderColor: meta.color }]}
+                    onPress={() => setReminderForm((f) => (f ? { ...f, mode: m.value } : f))}
+                  >
+                    <Text style={[styles.genderChipText, active && { color: meta.color }]}>{m.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </LabeledField>
+        ) : null}
+        {reminderForm?.mode === 'interval' && supportsInterval(reminderForm?.category || 'water') ? (
+          <LabeledField styles={styles} label={LABELS.notifications.intervalLabel}>
+            <View style={styles.genderRow}>
+              {INTERVAL_OPTIONS.map((minutes) => {
+                const active = reminderForm?.intervalMinutes === minutes;
+                const meta = reminderCategoryMeta(reminderForm?.category || 'water');
+                return (
+                  <TouchableOpacity
+                    key={minutes}
+                    style={[styles.genderChip, active && { backgroundColor: meta.soft, borderColor: meta.color }]}
+                    onPress={() => setReminderForm((f) => (f ? { ...f, intervalMinutes: minutes } : f))}
+                  >
+                    <Text style={[styles.genderChipText, active && { color: meta.color }]}>{formatIntervalLabel(minutes)}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </LabeledField>
+        ) : (
+          <>
+            <LabeledField styles={styles} label={LABELS.notifications.hourLabel}>
+              <View style={styles.genderRow}>
+                {hourOptions(...CATEGORY_HOUR_RANGE[reminderForm?.category || 'water']).map((h) => {
+                  const [selHour, selMinute] = (reminderForm?.time || '08:00').split(':');
+                  const active = selHour === h.value;
+                  const meta = reminderCategoryMeta(reminderForm?.category || 'water');
+                  return (
+                    <TouchableOpacity
+                      key={h.value}
+                      style={[styles.genderChip, active && { backgroundColor: meta.soft, borderColor: meta.color }]}
+                      onPress={() => setReminderForm((f) => (f ? { ...f, time: `${h.value}:${selMinute}` } : f))}
+                    >
+                      <Text style={[styles.genderChipText, active && { color: meta.color }]}>{h.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </LabeledField>
+            <LabeledField styles={styles} label={LABELS.notifications.minuteLabel}>
+              <View style={styles.genderRow}>
+                {MINUTE_OPTIONS.map((m) => {
+                  const [selHour, selMinute] = (reminderForm?.time || '08:00').split(':');
+                  const active = selMinute === m.value;
+                  const meta = reminderCategoryMeta(reminderForm?.category || 'water');
+                  return (
+                    <TouchableOpacity
+                      key={m.value}
+                      style={[styles.genderChip, active && { backgroundColor: meta.soft, borderColor: meta.color }]}
+                      onPress={() => setReminderForm((f) => (f ? { ...f, time: `${selHour}:${m.value}` } : f))}
+                    >
+                      <Text style={[styles.genderChipText, active && { color: meta.color }]}>{m.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </LabeledField>
+          </>
+        )}
+
+        <TouchableOpacity
+          style={[styles.submitBtn, { backgroundColor: reminderCategoryMeta(reminderForm?.category || 'water').color }]}
+          onPress={saveReminder}
+        >
+          <Text style={styles.submitLabel}>{LABELS.common.save}</Text>
+        </TouchableOpacity>
+        {reminderForm?.id ? (
+          <TouchableOpacity style={styles.deleteReminderBtn} onPress={deleteReminder}>
+            <Text style={styles.deleteReminderLabel}>{LABELS.notifications.deleteReminder}</Text>
+          </TouchableOpacity>
+        ) : null}
+      </QuickAddSheet>
 
       <InfoModal visible={bmiInfoOpen} title={LABELS.profile.aboutBmiTitle} onClose={() => setBmiInfoOpen(false)}>
         <View style={styles.sheetInfoRow}>
@@ -501,6 +584,36 @@ export default function ProfileScreen() {
         updatedLabel={TERMS_OF_SERVICE.updatedLabel}
         sections={TERMS_OF_SERVICE.sections}
         onClose={() => setDocScreen(null)}
+      />
+
+      <EntryDialog
+        visible={maxRemindersOpen}
+        title={LABELS.notifications.maxRemindersTitle}
+        description={LABELS.notifications.maxRemindersBody}
+        onClose={() => setMaxRemindersOpen(false)}
+        footer={
+          <TouchableOpacity style={styles.submitBtn} onPress={() => setMaxRemindersOpen(false)}>
+            <Text style={styles.submitLabel}>{LABELS.common.ok}</Text>
+          </TouchableOpacity>
+        }
+      />
+
+      <EntryDialog
+        visible={clearDataOpen}
+        title={LABELS.profile.clearDataConfirmTitle}
+        description={LABELS.profile.clearDataConfirmBody}
+        accentColor={colors.danger}
+        onClose={() => setClearDataOpen(false)}
+        footer={
+          <View style={styles.reminderFooter}>
+            <TouchableOpacity style={[styles.submitBtn, { backgroundColor: colors.danger }]} onPress={performClearData}>
+              <Text style={styles.submitLabel}>{LABELS.profile.clearDataConfirmAction}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.deleteReminderBtn} onPress={() => setClearDataOpen(false)}>
+              <Text style={styles.cancelLabel}>{LABELS.common.cancel}</Text>
+            </TouchableOpacity>
+          </View>
+        }
       />
     </View>
   );

@@ -118,9 +118,12 @@ export const makeStyles = (colors) =>
 
     reminderRowRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     emptyRemindersText: { fontSize: 12.5, color: colors.inkSoft, fontWeight: '500', lineHeight: 18, paddingVertical: spacing.sm },
+    remindersSectionInfo: { fontSize: 11.5, color: colors.inkFaint, fontWeight: '500', marginBottom: spacing.sm, paddingLeft: 2 },
+    disabledRow: { opacity: 0.4 },
     reminderFooter: { gap: spacing.sm },
     deleteReminderBtn: { paddingVertical: 10, alignItems: 'center' },
     deleteReminderLabel: { color: colors.danger, fontWeight: '700', fontSize: 13.5 },
+    cancelLabel: { color: colors.inkSoft, fontWeight: '700', fontSize: 13.5 },
 
     field: { marginBottom: 2 },
     fieldLabel: {
@@ -156,6 +159,8 @@ export const makeStyles = (colors) =>
       color: colors.ink,
       marginBottom: spacing.md,
     },
+    inputError: { borderColor: colors.danger, marginBottom: 6 },
+    errorText: { fontSize: 12, fontWeight: '600', color: colors.danger, marginBottom: spacing.md },
     submitBtn: { backgroundColor: colors.primary, borderRadius: 999, paddingVertical: 14, alignItems: 'center' },
     submitLabel: { color: colors.onAccent, fontWeight: '800', fontSize: 14 },
 

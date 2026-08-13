@@ -86,19 +86,29 @@ export interface Meal {
   fatsG: number;
 }
 
-// Reminder categories map 1:1 to the Android notification channels in
-// src/notifications/setup.ts (CHANNELS) — the category IS the channel, so
-// muting one in Android's system settings mutes every reminder of that
-// kind. `label` and `time` are fully user-chosen — there is no preset
-// schedule; a fresh install starts with zero reminders.
-export type ReminderCategory = 'water' | 'meals' | 'sleep' | 'steps';
+// Reminder categories. Breakfast/lunch/dinner/snack are distinct picker
+// choices (matching the meal types on the Nutrition screen) but all route
+// to the same "meals" Android notification channel in
+// src/notifications/setup.ts — muting one in Android's system settings
+// mutes every reminder of that kind. `label` and `time`/`intervalMinutes`
+// are fully user-chosen — there is no preset schedule; a fresh install
+// starts with zero reminders.
+export type ReminderCategory = 'water' | 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'sleep' | 'steps';
+
+// 'daily' fires once at a fixed clock time (e.g. a Lunch reminder at 1pm).
+// 'interval' repeats every N minutes starting from whenever it's scheduled
+// (e.g. "remind me to drink water every 30 minutes") — the natural shape
+// for something you don't want to log at one specific time.
+export type ReminderMode = 'daily' | 'interval';
 
 export interface Reminder {
   id: string;
   timestamp: string;
   category: ReminderCategory;
   label: string;
-  time: string; // "HH:mm" 24h
+  mode: ReminderMode;
+  time: string | null; // "HH:mm" 24h — set when mode === 'daily'
+  intervalMinutes: number | null; // set when mode === 'interval'
   enabled: boolean;
 }
 
