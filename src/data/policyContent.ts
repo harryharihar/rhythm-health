@@ -1,6 +1,6 @@
-// Privacy Policy and Terms of Service content for Rhythm.
+// Privacy Policy and Terms of Service content for PocketVitals.
 //
-// Rhythm is an independent, unregistered project — there is no company
+// PocketVitals is an independent, unregistered project — there is no company
 // behind it. This content describes plainly, and only, what the app actually
 // does: everything runs and stays on-device (src/storage/storage.js uses
 // expo-sqlite with no network layer anywhere in the app), the only external
@@ -19,8 +19,8 @@ export const PRIVACY_POLICY = {
     {
       heading: 'Overview',
       paragraphs: [
-        'Rhythm is a fully local, offline health-tracking app. It has no backend server, no user accounts, and no network connection of any kind — nothing you enter or log ever leaves your device.',
-        'Rhythm is an independent project and is not published or operated by a registered company. This policy describes exactly what the app does, in plain terms.',
+        'PocketVitals is a fully local, offline health-tracking app. It has no backend server, no user accounts, and no network connection of any kind — nothing you enter or log ever leaves your device.',
+        'PocketVitals is an independent project and is not published or operated by a registered company. This policy describes exactly what the app does, in plain terms.',
       ],
     },
     {
@@ -35,18 +35,18 @@ export const PRIVACY_POLICY = {
     {
       heading: 'Information read from your device',
       paragraphs: [
-        'On iOS, with your explicit permission, Rhythm reads heart rate, resting heart rate, exercise minutes, and sleep data from Apple Health so it can be shown on your dashboard. Rhythm only reads this data — it never writes back to Apple Health or shares it anywhere else.',
+        'On iOS, with your explicit permission, PocketVitals reads heart rate, resting heart rate, exercise minutes, and sleep data from Apple Health so it can be shown on your dashboard. PocketVitals only reads this data — it never writes back to Apple Health or shares it anywhere else.',
         'On Android, step counts are read from your device’s built-in motion sensor, which requires the Activity Recognition permission.',
       ],
     },
     {
       heading: 'Where your data lives',
       paragraphs: [
-        'Everything is stored in a local database on your device only. Nothing is uploaded, synced, or backed up to any server — because no such server exists for Rhythm.',
+        'Everything is stored in a local database on your device only. Nothing is uploaded, synced, or backed up to any server — because no such server exists for PocketVitals.',
       ],
     },
     {
-      heading: 'What Rhythm does not do',
+      heading: 'What PocketVitals does not do',
       bullets: [
         'No account creation or sign-in',
         'No analytics, tracking, or advertising SDKs',
@@ -57,7 +57,7 @@ export const PRIVACY_POLICY = {
     {
       heading: 'Notifications',
       paragraphs: [
-        'If reminders are enabled, they are scheduled locally by your device’s operating system. They are never sent through an external push service, because Rhythm has no server to send them from.',
+        'If reminders are enabled, they are scheduled locally by your device’s operating system. They are never sent through an external push service, because PocketVitals has no server to send them from.',
       ],
     },
     {
@@ -69,13 +69,13 @@ export const PRIVACY_POLICY = {
     {
       heading: 'Children',
       paragraphs: [
-        'Rhythm does not knowingly target children, does not collect data for advertising, and — since it has no accounts or network access — has no mechanism to identify or contact any user of any age.',
+        'PocketVitals does not knowingly target children, does not collect data for advertising, and — since it has no accounts or network access — has no mechanism to identify or contact any user of any age.',
       ],
     },
     {
       heading: 'Changes to this policy',
       paragraphs: [
-        'As Rhythm changes, this policy may be updated to keep matching what the app actually does. The current version is always available from Profile › About.',
+        'As PocketVitals changes, this policy may be updated to keep matching what the app actually does. The current version is always available from Profile › About.',
       ],
     },
   ],
@@ -87,12 +87,12 @@ export const TERMS_OF_SERVICE = {
   sections: [
     {
       heading: 'Acceptance of terms',
-      paragraphs: ['By using Rhythm, you agree to these terms. Rhythm is an independent project, not operated by a registered company.'],
+      paragraphs: ['By using PocketVitals, you agree to these terms. PocketVitals is an independent project, not operated by a registered company.'],
     },
     {
       heading: 'Not medical advice',
       paragraphs: [
-        'Rhythm is a personal wellness tracker, not a medical device. Calorie, distance, and sleep-stage figures shown in the app are estimates for general awareness, not clinical measurements. Always consult a qualified healthcare professional for medical advice, diagnosis, or treatment.',
+        'PocketVitals is a personal wellness tracker, not a medical device. Calorie, distance, and sleep-stage figures shown in the app are estimates for general awareness, not clinical measurements. Always consult a qualified healthcare professional for medical advice, diagnosis, or treatment.',
       ],
     },
     {
@@ -103,23 +103,23 @@ export const TERMS_OF_SERVICE = {
     },
     {
       heading: 'No warranty',
-      paragraphs: ['Rhythm is provided "as is", without warranties of any kind, express or implied, including but not limited to accuracy, reliability, or fitness for a particular purpose.'],
+      paragraphs: ['PocketVitals is provided "as is", without warranties of any kind, express or implied, including but not limited to accuracy, reliability, or fitness for a particular purpose.'],
     },
     {
       heading: 'Limitation of liability',
       paragraphs: [
-        'To the fullest extent permitted by law, the developer of Rhythm is not liable for any damages or losses — direct or indirect — arising from your use of, or inability to use, the app.',
+        'To the fullest extent permitted by law, the developer of PocketVitals is not liable for any damages or losses — direct or indirect — arising from your use of, or inability to use, the app.',
       ],
     },
     {
       heading: 'Changes to the app or these terms',
-      paragraphs: ['Features and these terms may change between app versions. Continuing to use Rhythm after an update means you accept the current version of these terms, always available from Profile › About.'],
+      paragraphs: ['Features and these terms may change between app versions. Continuing to use PocketVitals after an update means you accept the current version of these terms, always available from Profile › About.'],
     },
     {
       heading: 'Copyright',
       paragraphs: [
-        `© ${CURRENT_YEAR} Rhythm. All rights reserved.`,
-        'The Rhythm name, design, and app code are the work of an independent developer and are not associated with any registered company or organization. You may not copy, redistribute, reverse-engineer, or resell this app or its source code without permission.',
+        `© ${CURRENT_YEAR} PocketVitals. All rights reserved.`,
+        'The PocketVitals name, design, and app code are the work of an independent developer and are not associated with any registered company or organization. You may not copy, redistribute, reverse-engineer, or resell this app or its source code without permission.',
       ],
     },
   ],

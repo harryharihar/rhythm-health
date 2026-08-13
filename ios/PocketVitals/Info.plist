@@ -7,7 +7,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>Rhythm</string>
+    <string>PocketVitals</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -27,7 +27,7 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>com.harryharihar.rhythmhealth</string>
+          <string>com.harryharihar.pocketvitals</string>
         </array>
       </dict>
     </array>
@@ -45,11 +45,11 @@
       <true/>
     </dict>
     <key>NSHealthShareUsageDescription</key>
-    <string>Rhythm reads heart rate, exercise minutes, and sleep data from Health to show them on your dashboard. This data never leaves your device.</string>
+    <string>PocketVitals reads heart rate, exercise minutes, and sleep data from Health to show them on your dashboard. This data never leaves your device.</string>
     <key>NSHealthUpdateUsageDescription</key>
-    <string>Rhythm wants to update your health data</string>
+    <string>PocketVitals wants to update your health data</string>
     <key>NSMotionUsageDescription</key>
-    <string>Allow Rhythm to count your steps automatically.</string>
+    <string>Allow PocketVitals to count your steps automatically.</string>
     <key>RCTNewArchEnabled</key>
     <true/>
     <key>UILaunchStoryboardName</key>

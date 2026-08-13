@@ -102,9 +102,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.harryharihar.rhythmhealth'
+    namespace 'com.harryharihar.pocketvitals'
     defaultConfig {
-        applicationId 'com.harryharihar.rhythmhealth'
+        applicationId 'com.harryharihar.pocketvitals'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

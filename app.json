@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "Rhythm",
-    "slug": "rhythm-health",
+    "name": "PocketVitals",
+    "slug": "pocketvitals",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.harryharihar.rhythmhealth"
+      "bundleIdentifier": "com.harryharihar.pocketvitals"
     },
     "android": {
       "adaptiveIcon": {
@@ -20,7 +20,7 @@
       "permissions": [
         "ACTIVITY_RECOGNITION"
       ],
-      "package": "com.harryharihar.rhythmhealth"
+      "package": "com.harryharihar.pocketvitals"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -29,14 +29,14 @@
       [
         "expo-sensors",
         {
-          "motionPermission": "Allow Rhythm to count your steps automatically."
+          "motionPermission": "Allow PocketVitals to count your steps automatically."
         }
       ],
       "expo-sqlite",
       [
         "@kingstinct/react-native-healthkit",
         {
-          "NSHealthShareUsageDescription": "Rhythm reads heart rate, exercise minutes, and sleep data from Health to show them on your dashboard. This data never leaves your device."
+          "NSHealthShareUsageDescription": "PocketVitals reads heart rate, exercise minutes, and sleep data from Health to show them on your dashboard. This data never leaves your device."
         }
       ],
       [
@@ -44,6 +44,15 @@
         {
           "icon": "./assets/android-icon-monochrome.png",
           "color": "#2FEFAA"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#080C0B"
         }
       ]
     ]

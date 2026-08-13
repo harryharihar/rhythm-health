@@ -34,7 +34,7 @@ export const LABELS = {
 
   onboarding: {
     eyebrow: 'Welcome to',
-    appName: 'Rhythm',
+    appName: 'PocketVitals',
     subtitle: 'A few details to set your goals. Everything you enter stays on this device only.',
     nameLabel: 'Your name',
     namePlaceholder: 'Asha',
@@ -88,7 +88,7 @@ export const LABELS = {
     heartRateTitle: 'Heart Rate',
     heartRateInfoTitle: 'About Heart Rate',
     heartRateInfoIOS:
-      "This is your most recent BPM and resting heart rate reading, read directly from Apple Health (HealthKit) — usually recorded by a paired Apple Watch or another connected monitor. Rhythm doesn't measure heart rate itself, it only displays your latest Health app reading. It refreshes each time you open this screen.",
+      "This is your most recent BPM and resting heart rate reading, read directly from Apple Health (HealthKit) — usually recorded by a paired Apple Watch or another connected monitor. PocketVitals doesn't measure heart rate itself, it only displays your latest Health app reading. It refreshes each time you open this screen.",
     heartRateInfoAndroid:
       'Heart rate is read from Apple Health (HealthKit), which only exists on iOS — there is no equivalent source wired up for Android yet, so this has no real reading to show here.',
     bpm: 'BPM',
@@ -258,7 +258,7 @@ export const LABELS = {
     reminders: 'Reminders',
     remindersSubtitle: 'Turn on to enable the reminders you set up below',
     notificationsOffTitle: 'Notifications are off',
-    notificationsOffBody: 'Rhythm needs notification permission to send reminders. Enable it for Rhythm in your device Settings.',
+    notificationsOffBody: 'PocketVitals needs notification permission to send reminders. Enable it for PocketVitals in your device Settings.',
     openSettings: 'Open Settings',
 
     sectionGoals: 'GOALS',
@@ -377,7 +377,7 @@ export const LABELS = {
     sectionReminders: 'Reminders',
     remindersSectionInfo: 'Custom notifications for water, meals, sleep & more — {count}/10 used.',
     addReminder: '+ Add Reminder',
-    emptyReminders: 'No reminders yet — add one below (up to 10) and Rhythm will nudge you at that time every day.',
+    emptyReminders: 'No reminders yet — add one below (up to 10) and PocketVitals will nudge you at that time every day.',
     maxRemindersTitle: 'Reminder limit reached',
     maxRemindersBody: 'You can have up to 10 reminders at a time. Delete one to add another.',
     addReminderTitle: 'Add Reminder',

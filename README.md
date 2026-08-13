@@ -1,4 +1,4 @@
-# Rhythm — a local-only health tracker (Expo)
+# PocketVitals — a local-only health tracker (Expo)
 
 A React Native + Expo health app that tracks steps, water, sleep and weight.
 **All data is stored on-device** in a local **SQLite** database via

@@ -1,4 +1,4 @@
-package com.harryharihar.rhythmhealth
+package com.harryharihar.pocketvitals
 
 import android.app.Application
 import android.content.res.Configuration
