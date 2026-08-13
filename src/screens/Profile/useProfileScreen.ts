@@ -37,7 +37,7 @@ export const MAX_REMINDERS = 10;
 
 // All state, derived data, and handlers for the Profile screen.
 export function useProfileScreen(colors: any) {
-  const { profile, settings, reminders, updateProfile, updateGoals, updateSettings, resetAllData, addReminder, updateReminder, removeReminder } = useHealth();
+  const { profile, settings, reminders, updateProfile, updateGoals, updateSettings, resetAllData, resetTodaySteps, addReminder, updateReminder, removeReminder } = useHealth();
   const dbSizeMb = useMemo(getDbSizeMb, []);
 
   const [editOpen, setEditOpen] = useState(false);
@@ -51,6 +51,7 @@ export function useProfileScreen(colors: any) {
   const [docScreen, setDocScreen] = useState(null); // 'privacy' | 'terms' | null
   const [maxRemindersOpen, setMaxRemindersOpen] = useState(false);
   const [clearDataOpen, setClearDataOpen] = useState(false);
+  const [resetStepsOpen, setResetStepsOpen] = useState(false);
 
   const initials = profile ? getInitials(profile.name) : '?';
   const bmi = profile ? computeBmi(profile.heightCm, profile.weightKg) : null;
@@ -177,6 +178,13 @@ export function useProfileScreen(colors: any) {
     resetAllData();
   };
 
+  const confirmResetSteps = () => setResetStepsOpen(true);
+
+  const performResetSteps = () => {
+    setResetStepsOpen(false);
+    resetTodaySteps();
+  };
+
   return {
     profile,
     settings,
@@ -195,6 +203,7 @@ export function useProfileScreen(colors: any) {
     docScreen, setDocScreen,
     maxRemindersOpen, setMaxRemindersOpen,
     clearDataOpen, setClearDataOpen,
+    resetStepsOpen, setResetStepsOpen,
     initials,
     bmi,
     categories,
@@ -215,5 +224,7 @@ export function useProfileScreen(colors: any) {
     handleToggleReminders,
     confirmClear,
     performClearData,
+    confirmResetSteps,
+    performResetSteps,
   };
 }

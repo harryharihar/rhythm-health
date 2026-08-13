@@ -17,12 +17,17 @@ export const LABELS = {
     ok: 'OK',
   },
 
+  loading: {
+    appName: 'PocketVitals',
+    tagline: 'Your vitals, always within reach.',
+  },
+
   nav: {
     home: 'Home',
     activity: 'Activity',
     nutrition: 'Nutrition',
     sleep: 'Sleep',
-    profile: 'Profile',
+    profile: 'Settings',
   },
 
   gender: {
@@ -113,8 +118,8 @@ export const LABELS = {
     todaysWaterLog: "Today's Water Log",
     bmiBannerTitle: "Let's work toward a healthier range 💪",
     bmiBannerBody:
-      "Your BMI is currently in the {category} range. Set a weight goal in your Profile and we'll help you track progress toward it.",
-    bmiBannerCta: 'Set a Goal in Profile',
+      "Your BMI is currently in the {category} range. Set a weight goal in Settings and we'll help you track progress toward it.",
+    bmiBannerCta: 'Set a Goal in Settings',
   },
 
   sleep: {
@@ -246,7 +251,7 @@ export const LABELS = {
     goalSleepUnit: 'hours',
     goalSleepDescription: 'How many hours of sleep you aim to get each night.',
 
-    title: 'Profile',
+    title: 'Settings',
     editProfile: 'Edit Profile',
     height: 'Height',
     weight: 'Weight',
@@ -275,6 +280,11 @@ export const LABELS = {
     exportPreviewTitle: 'Export preview',
     exportPreviewBody:
       "This device has {water} water logs, {sleep} sleep logs, {steps} step entries, {weight} weight logs, {workouts} workouts, and {meals} meals.\n\nFile export/sharing isn't wired up yet — this previews what's stored.",
+    resetTodaySteps: "Reset Today's Steps",
+    resetTodayStepsSubtitle: 'Zero out auto-tracked steps for today only',
+    resetStepsConfirmTitle: "Reset today's steps to 0?",
+    resetStepsConfirmBody: "This only clears today's auto-tracked step count — nothing else is affected.",
+    resetStepsConfirmAction: 'Reset steps',
     clearAllData: 'Clear All Data',
     clearAllDataSubtitle: 'Remove all stored health data from device',
     clearDataConfirmTitle: 'Clear all local data?',

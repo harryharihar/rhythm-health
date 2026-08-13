@@ -22,7 +22,7 @@ const ICONS: Record<RouteName, string> = {
   [ROUTES.ACTIVITY]: 'pulse',
   [ROUTES.NUTRITION]: 'nutrition',
   [ROUTES.SLEEP]: 'moon',
-  [ROUTES.PROFILE]: 'person',
+  [ROUTES.PROFILE]: 'settings',
 };
 
 interface TabIconProps {

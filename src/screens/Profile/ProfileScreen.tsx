@@ -39,6 +39,7 @@ export default function ProfileScreen() {
     docScreen, setDocScreen,
     maxRemindersOpen, setMaxRemindersOpen,
     clearDataOpen, setClearDataOpen,
+    resetStepsOpen, setResetStepsOpen,
     initials,
     bmi,
     categories,
@@ -59,6 +60,8 @@ export default function ProfileScreen() {
     handleToggleReminders,
     confirmClear,
     performClearData,
+    confirmResetSteps,
+    performResetSteps,
   } = useProfileScreen(colors);
 
   const reminderCategories = REMINDER_CATEGORIES(colors);
@@ -261,6 +264,16 @@ export default function ProfileScreen() {
         <SectionLabel styles={styles} colors={colors} icon="server-outline" text={LABELS.profile.sectionDataStorage} />
         <Card>
           <SettingRow styles={styles} colors={colors} icon="save-outline" label={LABELS.profile.storageUsed} value={dbSizeMb != null ? `${dbSizeMb.toFixed(1)} MB` : '—'} />
+          <SettingRow
+            styles={styles}
+            colors={colors}
+            icon="refresh-outline"
+            iconColor={colors.steps}
+            iconBg={colors.stepsSoft}
+            label={LABELS.profile.resetTodaySteps}
+            subtitle={LABELS.profile.resetTodayStepsSubtitle}
+            onPress={confirmResetSteps}
+          />
           <SettingRow
             styles={styles}
             colors={colors}
@@ -595,6 +608,24 @@ export default function ProfileScreen() {
           <TouchableOpacity style={styles.submitBtn} onPress={() => setMaxRemindersOpen(false)}>
             <Text style={styles.submitLabel}>{LABELS.common.ok}</Text>
           </TouchableOpacity>
+        }
+      />
+
+      <EntryDialog
+        visible={resetStepsOpen}
+        title={LABELS.profile.resetStepsConfirmTitle}
+        description={LABELS.profile.resetStepsConfirmBody}
+        accentColor={colors.steps}
+        onClose={() => setResetStepsOpen(false)}
+        footer={
+          <View style={styles.reminderFooter}>
+            <TouchableOpacity style={[styles.submitBtn, { backgroundColor: colors.steps }]} onPress={performResetSteps}>
+              <Text style={styles.submitLabel}>{LABELS.profile.resetStepsConfirmAction}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.deleteReminderBtn} onPress={() => setResetStepsOpen(false)}>
+              <Text style={styles.cancelLabel}>{LABELS.common.cancel}</Text>
+            </TouchableOpacity>
+          </View>
         }
       />
 

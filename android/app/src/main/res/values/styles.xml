@@ -3,7 +3,11 @@
     <item name="android:enforceNavigationBarContrast" tools:targetApi="29">true</item>
     <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
     <item name="colorPrimary">@color/colorPrimary</item>
-    <item name="android:statusBarColor">#080C0B</item>
+    <item name="android:statusBarColor">#0A0C0F</item>
+    <!-- Without this, the gap between the OS splash screen dismissing and
+         React Native's first paint falls back to this theme's default
+         (light) window background, showing a white flash. -->
+    <item name="android:windowBackground">@color/splashscreen_background</item>
   </style>
   <style name="Theme.App.SplashScreen" parent="Theme.SplashScreen">
     <item name="windowSplashScreenBackground">@color/splashscreen_background</item>

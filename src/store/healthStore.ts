@@ -58,6 +58,7 @@ export interface HealthState {
   updateReminder: (id: string, patch: Partial<ReminderInput>) => Promise<Reminder>;
   removeReminder: (id: string) => Promise<void>;
   syncAutoSteps: (rawCount: number) => Promise<void>;
+  resetTodaySteps: () => Promise<void>;
   resetAllData: () => Promise<void>;
 }
 
@@ -260,6 +261,14 @@ export const useHealthStore = create<HealthState>()((set, get) => ({
       const steps = idx === -1 ? [entry, ...state.steps] : state.steps.map((e, i) => (i === idx ? entry : e));
       return { steps, autoStepsActive: true, rawStepsToday: rawCount };
     });
+  },
+
+  // For the auto-tracked pedometer count only — lets a user clear a
+  // false-positive reading (e.g. sensor noise from handling the phone)
+  // without touching any of their other logged data.
+  resetTodaySteps: async () => {
+    await setStepsResetOffset(get().rawStepsToday);
+    await get().syncAutoSteps(get().rawStepsToday);
   },
 
   resetAllData: async () => {
