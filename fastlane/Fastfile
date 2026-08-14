@@ -18,16 +18,34 @@ platform :ios do
       readonly: true
     )
 
-    # expo prebuild --clean names the .xcworkspace/scheme after the app's
-    # display name at generation time, which differs between "PocketVitals"
-    # (Prod) and "PocketVitals Dev" — discover it instead of hardcoding it.
-    # Anchored to this Fastfile's own location (repo_root/fastlane/Fastfile)
-    # rather than a relative path, since other fastlane actions (e.g. match)
-    # can change the process's working directory as a side effect.
+    # expo prebuild --clean names the .xcworkspace/.xcodeproj/scheme after
+    # the app's display name at generation time, which differs between
+    # "PocketVitals" (Prod) and "PocketVitals Dev" — discover them instead
+    # of hardcoding it. Anchored to this Fastfile's own location
+    # (repo_root/fastlane/Fastfile) rather than a relative path, since other
+    # fastlane actions (e.g. match) can change the process's working
+    # directory as a side effect.
     repo_root = File.expand_path('..', __dir__)
     workspace = Dir.glob(File.join(repo_root, 'ios', '*.xcworkspace')).first
     UI.user_error!("No .xcworkspace found under #{repo_root}/ios/") unless workspace
     scheme = File.basename(workspace, '.xcworkspace')
+    xcodeproj = Dir.glob(File.join(repo_root, 'ios', '*.xcodeproj')).first
+    UI.user_error!("No .xcodeproj found under #{repo_root}/ios/") unless xcodeproj
+
+    # expo prebuild generates the project with Xcode-managed "Automatic"
+    # signing, which in a headless CI context tries to fetch a Development
+    # profile via a live Xcode session rather than using the AdHoc
+    # cert/profile match already installed locally. Switch the target to
+    # manual signing pointed at that exact profile instead of hoping
+    # Automatic mode picks the right one.
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: xcodeproj,
+      team_id: ENV['APPLE_TEAM_ID'],
+      code_sign_identity: 'Apple Distribution',
+      profile_name: "match AdHoc #{options[:app_identifier]}",
+      bundle_identifier: options[:app_identifier]
+    )
 
     build_app(
       workspace: workspace,
@@ -35,12 +53,6 @@ platform :ios do
       export_method: 'ad-hoc',
       output_directory: File.join(repo_root, 'ios'),
       output_name: 'PocketVitals.ipa',
-      # expo prebuild generates the project with Automatic signing but no
-      # team set (it has no concept of Apple team IDs), so the archive step
-      # fails with "requires a development team" even though match already
-      # installed the right cert/profile locally — this just tells Xcode
-      # which team to use them under.
-      xcargs: "DEVELOPMENT_TEAM=#{ENV['APPLE_TEAM_ID']}",
       export_options: {
         provisioningProfiles: {
           options[:app_identifier] => "match AdHoc #{options[:app_identifier]}"
