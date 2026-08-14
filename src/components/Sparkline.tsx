@@ -47,7 +47,15 @@ export default function Sparkline({
   // stepX would divide by zero for one point anyway — so it's shown as a
   // single centered dot instead of a polyline.
   const stepX = data.length > 1 ? width / (data.length - 1) : 0;
-  const pad = strokeWidth + (dots ? 3 : 0);
+  // The highlight ring (r=6, its own 2.5px stroke) reaches further from its
+  // center than the base line/dots do — reserved whenever the chart can
+  // ever show one (interactive or currently highlighted), not just when a
+  // point happens to be highlighted right now, so toggling the highlight
+  // doesn't rescale/shift every other point on the chart. Without this, a
+  // point sitting at the data's min/max value pins the ring right at the
+  // chart's edge and half of it gets clipped.
+  const highlightPad = onSelectIndex || highlightIndex != null ? 8 : 0;
+  const pad = Math.max(strokeWidth + (dots ? 3 : 0), highlightPad);
 
   const toY = (v: number) => pad + (1 - (v - min) / range) * (height - pad * 2);
 
