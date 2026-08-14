@@ -1,0 +1,44 @@
+default_platform(:ios)
+
+# Distributing via Firebase App Distribution (not TestFlight), so builds are
+# always ad-hoc — testers install the .ipa directly and their device UDIDs
+# must be registered in the provisioning profile match manages.
+platform :ios do
+  private_lane :build_and_sign do |options|
+    app_store_connect_api_key(
+      key_id: ENV['APP_STORE_CONNECT_API_KEY_ID'],
+      issuer_id: ENV['APP_STORE_CONNECT_API_ISSUER_ID'],
+      key_content: ENV['APP_STORE_CONNECT_API_KEY_CONTENT'],
+      is_key_content_base64: true
+    )
+
+    match(
+      type: 'adhoc',
+      app_identifier: options[:app_identifier],
+      readonly: true
+    )
+
+    build_app(
+      workspace: 'PocketVitals.xcworkspace',
+      scheme: 'PocketVitals',
+      export_method: 'ad-hoc',
+      output_directory: '.',
+      output_name: 'PocketVitals.ipa',
+      export_options: {
+        provisioningProfiles: {
+          options[:app_identifier] => "match AdHoc #{options[:app_identifier]}"
+        }
+      }
+    )
+  end
+
+  desc 'Build and sign the Dev/UAT variant'
+  lane :dev do
+    build_and_sign(app_identifier: 'com.harryharihar.pocketvitals.dev')
+  end
+
+  desc 'Build and sign the Prod variant'
+  lane :prod do
+    build_and_sign(app_identifier: 'com.harryharihar.pocketvitals')
+  end
+end

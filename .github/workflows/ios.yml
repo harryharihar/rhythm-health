@@ -1,0 +1,65 @@
+name: iOS Build & Distribute
+
+on:
+  push:
+    branches: [develop, main]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      # develop -> Dev/UAT variant (fastlane lane `dev`), main -> Prod
+      # variant (fastlane lane `prod`). Bundle id/app name/icon are already
+      # driven by APP_ENV via app.config.js.
+      - name: Resolve environment
+        id: env
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "app_env=production" >> "$GITHUB_OUTPUT"
+            echo "fastlane_lane=prod" >> "$GITHUB_OUTPUT"
+            echo "firebase_app_id=${{ secrets.FIREBASE_IOS_APP_ID_PROD }}" >> "$GITHUB_OUTPUT"
+            echo "tester_group=prod-testers" >> "$GITHUB_OUTPUT"
+          else
+            echo "app_env=dev" >> "$GITHUB_OUTPUT"
+            echo "fastlane_lane=dev" >> "$GITHUB_OUTPUT"
+            echo "firebase_app_id=${{ secrets.FIREBASE_IOS_APP_ID_DEV }}" >> "$GITHUB_OUTPUT"
+            echo "tester_group=dev-testers" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate native iOS project
+        run: APP_ENV=${{ steps.env.outputs.app_env }} npx expo prebuild --platform ios --clean
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: ios
+
+      - name: Build and sign via fastlane
+        working-directory: ios
+        env:
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.ASC_API_KEY_CONTENT }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+        run: bundle exec fastlane ${{ steps.env.outputs.fastlane_lane }}
+
+      - name: Upload to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ steps.env.outputs.firebase_app_id }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          groups: ${{ steps.env.outputs.tester_group }}
+          file: ios/PocketVitals.ipa
