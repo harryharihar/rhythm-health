@@ -35,6 +35,12 @@ platform :ios do
       export_method: 'ad-hoc',
       output_directory: File.join(repo_root, 'ios'),
       output_name: 'PocketVitals.ipa',
+      # expo prebuild generates the project with Automatic signing but no
+      # team set (it has no concept of Apple team IDs), so the archive step
+      # fails with "requires a development team" even though match already
+      # installed the right cert/profile locally — this just tells Xcode
+      # which team to use them under.
+      xcargs: "DEVELOPMENT_TEAM=#{ENV['APPLE_TEAM_ID']}",
       export_options: {
         provisioningProfiles: {
           options[:app_identifier] => "match AdHoc #{options[:app_identifier]}"
