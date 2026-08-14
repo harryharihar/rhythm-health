@@ -25,6 +25,13 @@ import { todayKey } from './dateUtils';
 const ANDROID_BASELINE_KEY = '@rhythm:auto_steps_baseline';
 const IOS_POLL_MS = 20000;
 const ANDROID_DAY_CHECK_MS = 60000;
+// The step-counter sensor picks up incidental jostling from handling the
+// phone (unboxing it, installing the app, tapping around) as 1-2 "steps" —
+// most noticeable right after a fresh install, when there's no real walking
+// yet to drown it out. Whatever accumulates in this window right after a
+// subscription starts gets treated as handling noise and permanently
+// subtracted, rather than shown as steps the user never took.
+const ANDROID_SETTLE_MS = 4000;
 
 async function getAndroidBaseline() {
   try {
@@ -87,9 +94,18 @@ function watchAndroid(onUpdate) {
     const sessionBase = await getAndroidBaseline();
     if (cancelled) return;
 
+    const subscribedAt = Date.now();
+    let settled = false;
+    let noiseOffset = 0;
+
     sub = Pedometer.watchStepCount(({ steps }) => {
       if (cancelled) return;
-      const total = sessionBase + steps;
+      if (!settled) {
+        noiseOffset = steps;
+        if (Date.now() - subscribedAt < ANDROID_SETTLE_MS) return;
+        settled = true;
+      }
+      const total = sessionBase + Math.max(0, steps - noiseOffset);
       onUpdate(total);
       setAndroidBaseline(total);
     });

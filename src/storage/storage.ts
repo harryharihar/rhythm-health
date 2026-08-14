@@ -228,7 +228,13 @@ export async function saveProfile(profile: Profile): Promise<Profile> {
 
 // ---------- Settings ----------
 
-export const DEFAULT_SETTINGS: Settings = { darkMode: true, remindersEnabled: true, notificationTime: '9:00 PM' };
+// remindersEnabled defaults to false: it's only ever flipped true from
+// handleToggleReminders' explicit user action, which is also what triggers
+// the actual iOS/Android permission request. Defaulting it true here meant
+// the toggle already looked "on" on a fresh install, so nothing ever
+// prompted for permission — reminders could be added and looked fine in the
+// list, but never actually got scheduled since permission was never granted.
+export const DEFAULT_SETTINGS: Settings = { darkMode: true, remindersEnabled: false, notificationTime: '9:00 PM' };
 
 export async function getSettings(): Promise<Settings> {
   const db = await getDb();

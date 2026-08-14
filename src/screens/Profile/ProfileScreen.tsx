@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,6 +21,7 @@ import type { IconName, Reminder } from '../../types/models';
 export default function ProfileScreen() {
   const colors = useThemeColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const goalValueInputRef = useRef<TextInput>(null);
   const {
     profile,
     settings,
@@ -379,6 +380,7 @@ export default function ProfileScreen() {
         description={goalMeta?.description}
         accentColor={goalAccent}
         onClose={() => setGoalSheet(null)}
+        onShown={() => goalValueInputRef.current?.focus()}
         footer={
           <TouchableOpacity style={[styles.submitBtn, { backgroundColor: goalAccent }]} onPress={saveGoal}>
             <Text style={styles.submitLabel}>{LABELS.common.save}</Text>
@@ -394,15 +396,19 @@ export default function ProfileScreen() {
         ) : null}
         <View style={styles.goalInputRow}>
           <TextInput
+            ref={goalValueInputRef}
             style={[styles.input, styles.goalInputField]}
             keyboardType="decimal-pad"
             placeholder={LABELS.profile.newGoalValuePlaceholder}
             placeholderTextColor={colors.inkFaint}
             value={goalValue}
             onChangeText={setGoalValue}
-            autoFocus
           />
-          {goalMeta ? <Text style={styles.goalInputUnit}>{goalMeta.unit}</Text> : null}
+          {goalMeta ? (
+            <View style={styles.goalInputUnitWrap}>
+              <Text style={styles.goalInputUnit}>{goalMeta.unit}</Text>
+            </View>
+          ) : null}
         </View>
       </EntryDialog>
 

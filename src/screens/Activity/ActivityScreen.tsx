@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Keyboard, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -60,6 +60,8 @@ export default function ActivityScreen() {
     maxMet,
     calorieChartRows,
   } = useActivityScreen();
+  const stepsInputRef = useRef<TextInput>(null);
+  const durationInputRef = useRef<TextInput>(null);
 
   // A logged workout always saves with today's timestamp, so logging only
   // makes sense while viewing a range that actually includes today —
@@ -243,19 +245,24 @@ export default function ActivityScreen() {
         )}
       </ScrollView>
 
-      <QuickAddSheet visible={customOpen} title={LABELS.activity.logStepsTitle} onClose={() => setCustomOpen(false)}>
+      <QuickAddSheet
+        visible={customOpen}
+        title={LABELS.activity.logStepsTitle}
+        onClose={() => setCustomOpen(false)}
+        onShown={() => stepsInputRef.current?.focus()}
+      >
         <View style={styles.sheetInfoRow}>
           <Ionicons name="information-circle-outline" size={14} color={colors.inkSoft} />
           <Text style={styles.sheetInfoText}>{LABELS.activity.entriesRecordedToday}</Text>
         </View>
         <TextInput
+          ref={stepsInputRef}
           style={styles.input}
           keyboardType="number-pad"
           placeholder={LABELS.activity.stepsPlaceholder}
           placeholderTextColor={colors.inkFaint}
           value={customValue}
           onChangeText={setCustomValue}
-          autoFocus
         />
         <TouchableOpacity style={styles.submitBtn} onPress={submitCustom}>
           <Text style={styles.submitLabel}>{LABELS.activity.add}</Text>
@@ -266,6 +273,7 @@ export default function ActivityScreen() {
         visible={workoutOpen}
         title={sheetView === 'form' ? LABELS.activity.logWorkoutTitle : sheetView === 'types' ? LABELS.activity.workoutTypesTitle : LABELS.activity.calorieEstimateTitle}
         onClose={() => { resetWorkoutForm(); setWorkoutOpen(false); }}
+        onShown={() => durationInputRef.current?.focus()}
       >
         {sheetView !== 'form' && (
           <TouchableOpacity style={styles.backRow} onPress={() => setSheetView('form')} hitSlop={8}>
@@ -317,13 +325,13 @@ export default function ActivityScreen() {
                 <Ionicons name="time-outline" size={16} color={colors.steps} />
               </View>
               <TextInput
+                ref={durationInputRef}
                 style={styles.inputField}
                 keyboardType="number-pad"
                 placeholder={LABELS.activity.durationPlaceholder}
                 placeholderTextColor={colors.inkFaint}
                 value={durationInput}
                 onChangeText={setDurationInput}
-                autoFocus
               />
               <Text style={styles.inputSuffix}>{LABELS.activity.minSuffix}</Text>
             </View>

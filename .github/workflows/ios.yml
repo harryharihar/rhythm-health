@@ -8,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -37,16 +38,16 @@ jobs:
           fi
 
       - name: Generate native iOS project
+        env:
+          IOS_BUILD_NUMBER: ${{ github.run_number }}
         run: APP_ENV=${{ steps.env.outputs.app_env }} npx expo prebuild --platform ios --clean
 
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.2'
+          ruby-version: '3.4'
           bundler-cache: true
-          working-directory: ios
 
       - name: Build and sign via fastlane
-        working-directory: ios
         env:
           MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
@@ -54,12 +55,21 @@ jobs:
           APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.ASC_API_KEY_CONTENT }}
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: bundle exec fastlane ${{ steps.env.outputs.fastlane_lane }}
 
+      # wzieba/Firebase-Distribution-Github-Action is a Docker container
+      # action, which GitHub only supports on Linux runners — this job runs
+      # on macOS (required for xcodebuild), so it has to use the Firebase
+      # CLI directly instead (works cross-platform, already have Node set up).
       - name: Upload to Firebase App Distribution
-        uses: wzieba/Firebase-Distribution-Github-Action@v1
-        with:
-          appId: ${{ steps.env.outputs.firebase_app_id }}
-          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-          groups: ${{ steps.env.outputs.tester_group }}
-          file: ios/PocketVitals.ipa
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          FIREBASE_APP_ID: ${{ steps.env.outputs.firebase_app_id }}
+          TESTER_GROUP: ${{ steps.env.outputs.tester_group }}
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/firebase-service-account.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-service-account.json"
+          npx firebase-tools appdistribution:distribute ios/PocketVitals.ipa \
+            --app "$FIREBASE_APP_ID" \
+            --groups "$TESTER_GROUP"

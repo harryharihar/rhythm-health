@@ -34,6 +34,11 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: ENV.bundleId,
+      // Set by CI to the workflow's run number (always increasing) so every
+      // release build gets a strictly higher build number than the last —
+      // required for an update to install over an existing one. Falls back
+      // to a fixed value for local builds, where that doesn't matter.
+      buildNumber: process.env.IOS_BUILD_NUMBER || '1',
     },
     android: {
       adaptiveIcon: {
@@ -43,11 +48,18 @@ module.exports = {
       },
       permissions: ['ACTIVITY_RECOGNITION'],
       package: ENV.bundleId,
+      // Same idea as ios.buildNumber above, via CI's run number.
+      versionCode: parseInt(process.env.ANDROID_VERSION_CODE || '1', 10),
     },
     web: {
       favicon: './assets/favicon.png',
     },
     plugins: [
+      // Registered before expo-notifications: Expo's mod compiler runs
+      // same-type mods in the reverse of plugin registration order, so this
+      // has to come first in the array to actually run after
+      // expo-notifications adds the aps-environment entitlement.
+      './plugins/withoutPushEntitlement',
       [
         'expo-sensors',
         {

@@ -1,0 +1,92 @@
+require 'securerandom'
+
+default_platform(:ios)
+
+# Distributing via Firebase App Distribution (not TestFlight), so builds are
+# always ad-hoc — testers install the .ipa directly and their device UDIDs
+# must be registered in the provisioning profile match manages.
+platform :ios do
+  private_lane :build_and_sign do |options|
+    # Without a dedicated keychain with a known password, codesign can't set
+    # the imported certificate's ACL non-interactively — on a real Mac that
+    # means a permission popup, but on a headless CI runner there's no UI to
+    # show it, so the process just hangs indefinitely (observed: nearly 2
+    # hours stuck inside "[CP] Embed Pods Frameworks" waiting on codesign).
+    keychain_password = SecureRandom.hex(16)
+    create_keychain(
+      name: 'ci_keychain',
+      password: keychain_password,
+      default_keychain: true,
+      unlock: true,
+      timeout: 3600,
+      lock_when_sleeps: false
+    )
+
+    app_store_connect_api_key(
+      key_id: ENV['APP_STORE_CONNECT_API_KEY_ID'],
+      issuer_id: ENV['APP_STORE_CONNECT_API_ISSUER_ID'],
+      key_content: ENV['APP_STORE_CONNECT_API_KEY_CONTENT'],
+      is_key_content_base64: true
+    )
+
+    match(
+      type: 'adhoc',
+      app_identifier: options[:app_identifier],
+      readonly: true,
+      keychain_name: 'ci_keychain',
+      keychain_password: keychain_password
+    )
+
+    # expo prebuild --clean names the .xcworkspace/.xcodeproj/scheme after
+    # the app's display name at generation time, which differs between
+    # "PocketVitals" (Prod) and "PocketVitals Dev" — discover them instead
+    # of hardcoding it. Anchored to this Fastfile's own location
+    # (repo_root/fastlane/Fastfile) rather than a relative path, since other
+    # fastlane actions (e.g. match) can change the process's working
+    # directory as a side effect.
+    repo_root = File.expand_path('..', __dir__)
+    workspace = Dir.glob(File.join(repo_root, 'ios', '*.xcworkspace')).first
+    UI.user_error!("No .xcworkspace found under #{repo_root}/ios/") unless workspace
+    scheme = File.basename(workspace, '.xcworkspace')
+    xcodeproj = Dir.glob(File.join(repo_root, 'ios', '*.xcodeproj')).first
+    UI.user_error!("No .xcodeproj found under #{repo_root}/ios/") unless xcodeproj
+
+    # expo prebuild generates the project with Xcode-managed "Automatic"
+    # signing, which in a headless CI context tries to fetch a Development
+    # profile via a live Xcode session rather than using the AdHoc
+    # cert/profile match already installed locally. Switch the target to
+    # manual signing pointed at that exact profile instead of hoping
+    # Automatic mode picks the right one.
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: xcodeproj,
+      team_id: ENV['APPLE_TEAM_ID'],
+      code_sign_identity: 'Apple Distribution',
+      profile_name: "match AdHoc #{options[:app_identifier]}",
+      bundle_identifier: options[:app_identifier]
+    )
+
+    build_app(
+      workspace: workspace,
+      scheme: scheme,
+      export_method: 'ad-hoc',
+      output_directory: File.join(repo_root, 'ios'),
+      output_name: 'PocketVitals.ipa',
+      export_options: {
+        provisioningProfiles: {
+          options[:app_identifier] => "match AdHoc #{options[:app_identifier]}"
+        }
+      }
+    )
+  end
+
+  desc 'Build and sign the Dev/UAT variant'
+  lane :dev do
+    build_and_sign(app_identifier: 'com.harryharihar.pocketvitals.dev')
+  end
+
+  desc 'Build and sign the Prod variant'
+  lane :prod do
+    build_and_sign(app_identifier: 'com.harryharihar.pocketvitals')
+  end
+end

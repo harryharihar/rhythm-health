@@ -22,6 +22,13 @@ interface EntryDialogProps {
   onClose: () => void;
   children?: ReactNode;
   footer?: ReactNode;
+  // Fires once the entrance animation finishes. Use this instead of a
+  // TextInput's `autoFocus` prop to focus it — autoFocus fires the moment
+  // the input mounts, which races the card's scale/fade-in transition. On
+  // iOS that race visibly glitches the dialog's position/size as the
+  // keyboard slides up mid-animation; Android's keyboard handling doesn't
+  // hit the same race, which is why it only ever showed up on iOS.
+  onShown?: () => void;
 }
 
 // A centered dialog for entering or picking a single value (a goal number, a
@@ -39,7 +46,7 @@ interface EntryDialogProps {
 // icon grid (same shape QuickAddSheet uses) for picker-style entries.
 // `footer` renders pinned below the scrollable content (e.g. a Save button),
 // so it never scrolls out of reach on longer forms.
-export default function EntryDialog({ visible, title, description, options, accentColor, onClose, children, footer }: EntryDialogProps) {
+export default function EntryDialog({ visible, title, description, options, accentColor, onClose, children, footer, onShown }: EntryDialogProps) {
   const colors = useThemeColors();
   const accent = accentColor || colors.primary;
   const styles = useMemo(() => makeStyles(colors, accent), [colors, accent]);
@@ -55,7 +62,7 @@ export default function EntryDialog({ visible, title, description, options, acce
       Animated.parallel([
         Animated.timing(scale, { toValue: 1, duration: 180, useNativeDriver: true }),
         Animated.timing(opacity, { toValue: 1, duration: 180, useNativeDriver: true }),
-      ]).start();
+      ]).start(({ finished }) => finished && onShown?.());
     } else {
       Animated.timing(opacity, { toValue: 0, duration: 140, useNativeDriver: true }).start(({ finished }) => finished && setRendered(false));
     }

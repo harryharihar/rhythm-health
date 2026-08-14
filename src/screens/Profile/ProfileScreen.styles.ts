@@ -168,13 +168,18 @@ export const makeStyles = (colors) =>
     goalDialogIconCircle: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
     goalInputRow: { position: 'relative', justifyContent: 'center', marginBottom: spacing.md },
     goalInputField: { paddingRight: 70, marginBottom: 0 },
-    goalInputUnit: {
+    // `textAlignVertical` (the previous approach here) only exists on
+    // Android — on iOS it's silently a no-op, so the label stayed pinned to
+    // the top of this absolutely-positioned box instead of centering.
+    // Centering the wrapping View with flexbox works identically on both.
+    goalInputUnitWrap: {
       position: 'absolute',
       right: spacing.md,
       top: 0,
       bottom: 0,
-      textAlignVertical: 'center',
-      includeFontPadding: false,
+      justifyContent: 'center',
+    },
+    goalInputUnit: {
       fontSize: 13,
       fontWeight: '700',
       color: colors.inkSoft,
