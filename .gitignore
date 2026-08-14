@@ -18,10 +18,10 @@ node_modules/
 android/app/release.keystore
 
 # fastlane
-ios/fastlane/report.xml
-ios/fastlane/Preview.html
-ios/fastlane/screenshots/
-ios/fastlane/test_output/
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
 vendor/
 
 # Metro

@@ -19,10 +19,10 @@ platform :ios do
     )
 
     build_app(
-      workspace: 'PocketVitals.xcworkspace',
+      workspace: 'ios/PocketVitals.xcworkspace',
       scheme: 'PocketVitals',
       export_method: 'ad-hoc',
-      output_directory: '.',
+      output_directory: 'ios',
       output_name: 'PocketVitals.ipa',
       export_options: {
         provisioningProfiles: {
