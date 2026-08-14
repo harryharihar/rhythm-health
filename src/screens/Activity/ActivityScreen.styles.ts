@@ -98,6 +98,8 @@ export const makeStyles = (colors) =>
 
     sheetInfoRow: { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', gap: 6, marginBottom: spacing.md },
     sheetInfoText: { fontSize: 11.5, color: colors.inkSoft, fontWeight: '500', flexShrink: 1 },
+    dialogIconWrap: { alignItems: 'center', marginBottom: spacing.md },
+    dialogIconCircle: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.stepsSoft },
     typePicker: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: spacing.md },
     typeChip: {
       flexBasis: '31%',
