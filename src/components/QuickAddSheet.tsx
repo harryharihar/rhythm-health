@@ -22,6 +22,9 @@ interface QuickAddSheetProps {
   accentColor?: string;
   onClose: () => void;
   children?: ReactNode;
+  // Fires once the entrance animation finishes — see EntryDialog's identical
+  // prop for why this replaces a TextInput's `autoFocus`.
+  onShown?: () => void;
 }
 
 // Expo SDK 54's mandatory Android edge-to-edge mode makes how much
@@ -53,7 +56,7 @@ const SheetScroll = Platform.OS === 'android' ? ScrollView : KeyboardAwareScroll
 // `options` items: { label, icon?, active?, onPress }. With 3+ options they
 // lay out as a wrapping icon grid instead of a stacked list; `accentColor`
 // (defaults to the app's primary) colors the icon chips and the active state.
-export default function QuickAddSheet({ visible, title, options, accentColor, onClose, children }: QuickAddSheetProps) {
+export default function QuickAddSheet({ visible, title, options, accentColor, onClose, children, onShown }: QuickAddSheetProps) {
   const colors = useThemeColors();
   const accent = accentColor || colors.primary;
   const styles = useMemo(() => makeStyles(colors, accent), [colors, accent]);
@@ -94,7 +97,7 @@ export default function QuickAddSheet({ visible, title, options, accentColor, on
       Animated.parallel([
         Animated.timing(translateY, { toValue: 0, duration: 220, useNativeDriver: true }),
         Animated.timing(backdropOpacity, { toValue: 1, duration: 220, useNativeDriver: true }),
-      ]).start();
+      ]).start(({ finished }) => finished && onShown?.());
     } else {
       Animated.parallel([
         Animated.timing(translateY, { toValue: 40, duration: 160, useNativeDriver: true }),

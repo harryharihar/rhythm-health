@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import DailyArc from '../../components/DailyArc';
@@ -29,6 +29,7 @@ export default function WaterScreen() {
     submitCustom,
     addWater,
   } = useWaterScreen();
+  const customInputRef = useRef<TextInput>(null);
 
   return (
     <View style={styles.flex}>
@@ -82,15 +83,20 @@ export default function WaterScreen() {
           <WeekBars data={weekData} color={colors.water} trackColor={colors.waterSoft} />
         </Card>
 
-        <QuickAddSheet visible={customOpen} title={LABELS.water.customDialogTitle} onClose={() => setCustomOpen(false)}>
+        <QuickAddSheet
+          visible={customOpen}
+          title={LABELS.water.customDialogTitle}
+          onClose={() => setCustomOpen(false)}
+          onShown={() => customInputRef.current?.focus()}
+        >
           <TextInput
+            ref={customInputRef}
             style={styles.input}
             keyboardType="number-pad"
             placeholder={LABELS.water.amountPlaceholder}
             placeholderTextColor={colors.inkFaint}
             value={customValue}
             onChangeText={setCustomValue}
-            autoFocus
           />
           <TouchableOpacity style={styles.submitBtn} onPress={submitCustom}>
             <Text style={styles.submitLabel}>{LABELS.water.addSubmit}</Text>
