@@ -66,7 +66,11 @@ export async function rescheduleAllReminders(reminders: Reminder[]) {
             })();
       return Notifications.scheduleNotificationAsync({
         identifier: r.id,
-        content: { title: r.label, body: CATEGORY_BODY[r.category] },
+        // Time-sensitive so iOS delivers it right away instead of silently
+        // deferring it into a batched Scheduled Summary digest — a setting
+        // that's easy to have on without realizing it defeats the whole
+        // point of a reminder.
+        content: { title: r.label, body: CATEGORY_BODY[r.category], interruptionLevel: 'timeSensitive' },
         trigger,
       });
     })
