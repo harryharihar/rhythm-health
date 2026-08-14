@@ -1,3 +1,5 @@
+require 'securerandom'
+
 default_platform(:ios)
 
 # Distributing via Firebase App Distribution (not TestFlight), so builds are
@@ -5,6 +7,21 @@ default_platform(:ios)
 # must be registered in the provisioning profile match manages.
 platform :ios do
   private_lane :build_and_sign do |options|
+    # Without a dedicated keychain with a known password, codesign can't set
+    # the imported certificate's ACL non-interactively — on a real Mac that
+    # means a permission popup, but on a headless CI runner there's no UI to
+    # show it, so the process just hangs indefinitely (observed: nearly 2
+    # hours stuck inside "[CP] Embed Pods Frameworks" waiting on codesign).
+    keychain_password = SecureRandom.hex(16)
+    create_keychain(
+      name: 'ci_keychain',
+      password: keychain_password,
+      default_keychain: true,
+      unlock: true,
+      timeout: 3600,
+      lock_when_sleeps: false
+    )
+
     app_store_connect_api_key(
       key_id: ENV['APP_STORE_CONNECT_API_KEY_ID'],
       issuer_id: ENV['APP_STORE_CONNECT_API_ISSUER_ID'],
@@ -15,7 +32,9 @@ platform :ios do
     match(
       type: 'adhoc',
       app_identifier: options[:app_identifier],
-      readonly: true
+      readonly: true,
+      keychain_name: 'ci_keychain',
+      keychain_password: keychain_password
     )
 
     # expo prebuild --clean names the .xcworkspace/.xcodeproj/scheme after
