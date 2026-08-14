@@ -404,7 +404,11 @@ export default function ProfileScreen() {
             value={goalValue}
             onChangeText={setGoalValue}
           />
-          {goalMeta ? <Text style={styles.goalInputUnit}>{goalMeta.unit}</Text> : null}
+          {goalMeta ? (
+            <View style={styles.goalInputUnitWrap}>
+              <Text style={styles.goalInputUnit}>{goalMeta.unit}</Text>
+            </View>
+          ) : null}
         </View>
       </EntryDialog>
 
