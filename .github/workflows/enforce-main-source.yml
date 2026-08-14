@@ -1,0 +1,21 @@
+name: Enforce main only merges from develop
+
+# main should only ever receive changes via develop (which every feature
+# branch is required to go through first) — this blocks any PR that targets
+# main from a different source branch, so the rule is enforced automatically
+# rather than relying on remembering not to do it.
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-source-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify PR source is develop
+        run: |
+          if [ "${{ github.head_ref }}" != "develop" ]; then
+            echo "::error::PRs into main must come from develop, not '${{ github.head_ref }}'. Merge into develop first, then open a PR from develop to main."
+            exit 1
+          fi
+          echo "OK: source branch is develop."
