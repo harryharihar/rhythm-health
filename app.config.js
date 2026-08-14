@@ -77,6 +77,9 @@ module.exports = {
           backgroundColor: '#0A0C0F',
         },
       ],
+      './plugins/withNodeBinaryFix',
+      './plugins/withAndroidReleaseSigning',
+      './plugins/withSplashWindowBackground',
     ],
   },
 };

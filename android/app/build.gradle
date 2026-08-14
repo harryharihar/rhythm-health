@@ -4,25 +4,22 @@ apply plugin: "com.facebook.react"
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
-// Android Studio's Gradle daemon launches without the shell's PATH, so a
-// bare "node" command fails to spawn when node is managed by nvm (it's not
-// on a standard system PATH). Resolve the real absolute path via a login
-// shell once at config time, with a fallback to plain "node" for CI/other
-// environments where it's already on PATH normally.
-def nodeBinary = { ->
-    try {
-        def resolved = ["/bin/zsh", "-lc", "command -v node"].execute(null, rootDir).text.trim()
-        return resolved ?: "node"
-    } catch (Exception e) {
-        return "node"
-    }
+def nodeBinary = {
+  try {
+    def resolved = ["/bin/zsh", "-lc", "command -v node"].execute(null, rootDir).text.trim()
+    return resolved ?: "node"
+  } catch (Exception e) {
+    return "node"
+  }
 }()
+
 
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
  */
 react {
+    nodeExecutableAndArgs = [nodeBinary]
     entryFile = file([nodeBinary, "-e", "require('expo/scripts/resolveAppEntry')", projectRoot, "android", "absolute"].execute(null, rootDir).text.trim())
     reactNativeDir = new File([nodeBinary, "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsoluteFile()
     hermesCommand = new File([nodeBinary, "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsolutePath() + "/sdks/hermesc/%OS-BIN%/hermesc"
@@ -33,7 +30,6 @@ react {
     // works correctly with Expo projects.
     cliFile = new File([nodeBinary, "--print", "require.resolve('@expo/cli', { paths: [require.resolve('expo/package.json')] })"].execute(null, rootDir).text.trim())
     bundleCommand = "export:embed"
-    nodeExecutableAndArgs = [nodeBinary]
 
     /* Folders */
      //   The root of your project, i.e. where "package.json" lives. Default is '../..'
@@ -113,6 +109,19 @@ android {
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
     signingConfigs {
+        release {
+            if (System.getenv("ANDROID_KEYSTORE_PATH")) {
+                storeFile file(System.getenv("ANDROID_KEYSTORE_PATH"))
+                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+            } else {
+                storeFile file('debug.keystore')
+                storePassword 'android'
+                keyAlias 'androiddebugkey'
+                keyPassword 'android'
+            }
+        }
         debug {
             storeFile file('debug.keystore')
             storePassword 'android'
@@ -127,7 +136,7 @@ android {
         release {
             // Caution! In production, you need to generate your own keystore file.
             // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds
