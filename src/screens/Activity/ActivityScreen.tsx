@@ -7,6 +7,7 @@ import Sparkline from '../../components/Sparkline';
 import Card from '../../components/Card';
 import StatCard from '../../components/StatCard';
 import QuickAddSheet from '../../components/QuickAddSheet';
+import EntryDialog from '../../components/EntryDialog';
 import { useThemeColors } from '../../theme/useTheme';
 import { formatRelativeTime } from '../../utils/dateUtils';
 import { iconForType, WORKOUT_TYPES } from '../../utils/healthCalculations';
@@ -245,12 +246,23 @@ export default function ActivityScreen() {
         )}
       </ScrollView>
 
-      <QuickAddSheet
+      <EntryDialog
         visible={customOpen}
         title={LABELS.activity.logStepsTitle}
+        accentColor={colors.steps}
         onClose={() => setCustomOpen(false)}
         onShown={() => stepsInputRef.current?.focus()}
+        footer={
+          <TouchableOpacity style={styles.submitBtn} onPress={submitCustom}>
+            <Text style={styles.submitLabel}>{LABELS.activity.add}</Text>
+          </TouchableOpacity>
+        }
       >
+        <View style={styles.dialogIconWrap}>
+          <View style={styles.dialogIconCircle}>
+            <Ionicons name="footsteps" size={22} color={colors.steps} />
+          </View>
+        </View>
         <View style={styles.sheetInfoRow}>
           <Ionicons name="information-circle-outline" size={14} color={colors.inkSoft} />
           <Text style={styles.sheetInfoText}>{LABELS.activity.entriesRecordedToday}</Text>
@@ -264,10 +276,7 @@ export default function ActivityScreen() {
           value={customValue}
           onChangeText={setCustomValue}
         />
-        <TouchableOpacity style={styles.submitBtn} onPress={submitCustom}>
-          <Text style={styles.submitLabel}>{LABELS.activity.add}</Text>
-        </TouchableOpacity>
-      </QuickAddSheet>
+      </EntryDialog>
 
       <QuickAddSheet
         visible={workoutOpen}

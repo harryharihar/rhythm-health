@@ -3,6 +3,9 @@ name: iOS Build & Distribute
 on:
   push:
     branches: [develop, main]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
   workflow_dispatch: {}
 
 jobs:
