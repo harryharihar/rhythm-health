@@ -18,9 +18,16 @@ platform :ios do
       readonly: true
     )
 
+    # expo prebuild --clean names the .xcworkspace/scheme after the app's
+    # display name at generation time, which differs between "PocketVitals"
+    # (Prod) and "PocketVitals Dev" — discover it instead of hardcoding it.
+    workspace = Dir.glob('ios/*.xcworkspace').first
+    UI.user_error!('No .xcworkspace found under ios/') unless workspace
+    scheme = File.basename(workspace, '.xcworkspace')
+
     build_app(
-      workspace: 'ios/PocketVitals.xcworkspace',
-      scheme: 'PocketVitals',
+      workspace: workspace,
+      scheme: scheme,
       export_method: 'ad-hoc',
       output_directory: 'ios',
       output_name: 'PocketVitals.ipa',
