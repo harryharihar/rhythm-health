@@ -21,15 +21,19 @@ platform :ios do
     # expo prebuild --clean names the .xcworkspace/scheme after the app's
     # display name at generation time, which differs between "PocketVitals"
     # (Prod) and "PocketVitals Dev" — discover it instead of hardcoding it.
-    workspace = Dir.glob('ios/*.xcworkspace').first
-    UI.user_error!('No .xcworkspace found under ios/') unless workspace
+    # Anchored to this Fastfile's own location (repo_root/fastlane/Fastfile)
+    # rather than a relative path, since other fastlane actions (e.g. match)
+    # can change the process's working directory as a side effect.
+    repo_root = File.expand_path('..', __dir__)
+    workspace = Dir.glob(File.join(repo_root, 'ios', '*.xcworkspace')).first
+    UI.user_error!("No .xcworkspace found under #{repo_root}/ios/") unless workspace
     scheme = File.basename(workspace, '.xcworkspace')
 
     build_app(
       workspace: workspace,
       scheme: scheme,
       export_method: 'ad-hoc',
-      output_directory: 'ios',
+      output_directory: File.join(repo_root, 'ios'),
       output_name: 'PocketVitals.ipa',
       export_options: {
         provisioningProfiles: {
