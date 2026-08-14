@@ -41,6 +41,8 @@ jobs:
           fi
 
       - name: Generate native Android project
+        env:
+          ANDROID_VERSION_CODE: ${{ github.run_number }}
         run: APP_ENV=${{ steps.env.outputs.app_env }} npx expo prebuild --platform android --clean
 
       - name: Decode release keystore

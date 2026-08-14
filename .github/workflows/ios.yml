@@ -38,6 +38,8 @@ jobs:
           fi
 
       - name: Generate native iOS project
+        env:
+          IOS_BUILD_NUMBER: ${{ github.run_number }}
         run: APP_ENV=${{ steps.env.outputs.app_env }} npx expo prebuild --platform ios --clean
 
       - uses: ruby/setup-ruby@v1
