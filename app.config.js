@@ -48,6 +48,11 @@ module.exports = {
       favicon: './assets/favicon.png',
     },
     plugins: [
+      // Registered before expo-notifications: Expo's mod compiler runs
+      // same-type mods in the reverse of plugin registration order, so this
+      // has to come first in the array to actually run after
+      // expo-notifications adds the aps-environment entitlement.
+      './plugins/withoutPushEntitlement',
       [
         'expo-sensors',
         {
